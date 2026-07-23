@@ -1,0 +1,382 @@
+Stand & Stride – Software Design Document
+1. Cover Page
+Stand & Stride
+
+Junior Internship Management System
+
+Software Design Document
+
+Version 1.0
+
+Prepared by:
+Hemang Jindal
+2. Table of Contents
+1. Introduction
+
+2. Problem Statement
+
+3. Objectives
+
+4. Scope
+
+5. User Roles
+
+6. Functional Requirements
+
+7. Non-Functional Requirements
+
+8. System Architecture
+
+9. End-to-End Workflow
+
+10. User Journeys
+
+11. Application Sitemap
+
+12. Folder Structure
+
+13. Database Design
+
+14. API Design
+
+15. Design System
+
+16. Student Wireframes
+
+17. Staff Wireframes
+
+18. Screen Flows
+
+19. Development Roadmap
+
+20. Future Enhancements
+3. Introduction
+Overview
+
+Stand & Stride is a mobile-first internship management platform developed to streamline the management of junior internships for students, coordinators, and administrators. The application digitizes the complete internship lifecycle, from student registration to certificate generation, while providing a simple, responsive experience optimized for smartphones.
+
+4. Problem Statement
+
+Currently, internship management relies on spreadsheets, WhatsApp groups, manual attendance registers, and paper-based documentation. This creates challenges such as:
+
+Scattered student records
+Manual attendance tracking
+Delayed certificate requests
+Poor communication
+Lack of centralized information
+Difficulty monitoring internship progress
+5. Objectives
+
+The application aims to:
+
+Digitize internship management
+Provide a centralized student portal
+Simplify attendance tracking
+Display internship schedules
+Allow online grievance submission
+Automate certificate requests
+Improve communication through announcements
+Reduce administrative workload
+6. Scope
+Student
+Login
+Dashboard
+Attendance
+Schedule
+Profile
+Certificate
+Grievance
+Staff
+Dashboard
+Student Management
+Attendance Management
+Batch Management
+Certificates
+Reports
+Announcements
+7. User Roles
+Student
+View internship details
+View attendance
+View schedule
+Request certificate
+Raise grievance
+View announcements
+Staff
+Manage batches
+Manage attendance
+View reports
+Upload announcements
+Approve certificates
+Admin (Future)
+Manage users
+Create batches
+Assign mentors
+System analytics
+8. Functional Requirements
+Authentication
+Login
+Logout
+Dashboard
+Internship progress
+Today's session
+Announcements
+Quick actions
+Attendance
+Percentage
+Daily attendance
+History
+Remarks
+Schedule
+Daily topics
+Venue
+Time
+Mentor
+Certificate
+Eligibility
+Request
+Download
+Grievance
+Submit
+Track
+View status
+9. Non-Functional Requirements
+Mobile First
+Responsive Design
+Fast Loading
+Secure Authentication
+Maintainable Code
+Scalable Architecture
+10. System Architecture
+
+(Insert the architecture diagram we've already created.)
+
+11. End-to-End Workflow
+
+(Insert the internship lifecycle flow.)
+
+Registration
+↓
+
+Offer Letter
+
+↓
+
+Batch Allocation
+
+↓
+
+Attendance
+
+↓
+
+Assessment
+
+↓
+
+Certificate
+12. User Journeys
+Student
+Login
+
+↓
+
+Dashboard
+
+↓
+
+Schedule
+
+↓
+
+Attendance
+
+↓
+
+Dashboard
+
+↓
+
+Certificate
+Staff
+Login
+
+↓
+
+Dashboard
+
+↓
+
+Students
+
+↓
+
+Attendance
+
+↓
+
+Reports
+
+↓
+
+Certificates
+13. Application Sitemap
+Login
+
+│
+
+├── Student
+
+│     ├── Dashboard
+
+│     ├── Attendance
+
+│     ├── Schedule
+
+│     ├── Profile
+
+│     ├── Certificate
+
+│     └── Grievance
+
+│
+
+└── Staff
+
+      ├── Dashboard
+
+      ├── Students
+
+      ├── Attendance
+
+      ├── Batches
+
+      ├── Certificates
+
+      ├── Reports
+
+      └── Announcements
+14. Folder Structure
+
+(Insert your finalized React folder structure.)
+
+15. Database Design (High-Level)
+
+Even if you're not implementing the backend yet, this shows you've thought ahead.
+
+Tables
+Users
+
+Students
+
+Staff
+
+Attendance
+
+Schedule
+
+Announcements
+
+Grievances
+
+Certificates
+
+Batches
+Relationships
+Student
+
+↓
+
+Batch
+
+↓
+
+Attendance
+
+↓
+
+Certificate
+16. API Design (Future)
+
+List the endpoints you expect the frontend to use.
+
+POST /login
+
+GET /student/profile
+
+GET /attendance
+
+GET /schedule
+
+GET /announcements
+
+POST /grievance
+
+POST /certificate/request
+17. Design System
+
+Include:
+
+Colors
+Typography
+Buttons
+Cards
+Badges
+Navigation
+Icons
+Spacing
+18. Student Wireframes
+
+Include the seven wireframes:
+
+Login
+Dashboard
+Attendance
+Schedule
+Profile
+Certificate
+Grievance
+19. Staff Wireframes (Optional / Future)
+
+Even rough layouts for:
+
+Dashboard
+Students
+Attendance
+Reports
+Certificates
+
+This shows you've planned the entire product, even if you're currently focused on the student module.
+
+20. Screen Flows
+
+Include the navigation diagrams we've created, showing how users move through the app.
+
+21. Development Roadmap
+Sprint 1
+Authentication
+Navigation
+Dashboard
+Sprint 2
+Attendance
+Schedule
+Sprint 3
+Profile
+Grievance
+Sprint 4
+Certificates
+Backend Integration
+Testing
+22. Future Enhancements
+
+Examples:
+
+Push notifications
+QR code attendance
+Mentor feedback
+Document uploads
+Maps integration
+Offline support
+Dark mode
+Analytics dashboard
+Email notifications
