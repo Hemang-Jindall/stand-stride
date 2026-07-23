@@ -1,12 +1,33 @@
 import { Bell } from "lucide-react";
 
-import { useNavigate } from "react-router-dom";
+import {
+  useNavigate,
+  useLocation,
+} from "react-router-dom";
 
 export default function Header() {
 
   const navigate = useNavigate();
+  const location = useLocation();
+
+  function openNotifications() {
+
+    if (location.pathname.startsWith("/admin")) {
+
+      navigate("/admin/notifications");
+
+    }
+
+    else {
+
+      navigate("/notifications");
+
+    }
+
+  }
 
   return (
+
     <header className="relative flex items-center justify-center px-4 py-3 bg-white shadow-sm">
 
       <div className="text-center">
@@ -22,7 +43,7 @@ export default function Header() {
       </div>
 
       <button
-        onClick={() => navigate("/notifications")}
+        onClick={openNotifications}
         className="absolute right-4"
       >
 
@@ -34,5 +55,7 @@ export default function Header() {
       </button>
 
     </header>
+
   );
+
 }
