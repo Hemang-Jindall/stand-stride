@@ -11,6 +11,7 @@ import {
   Phone,
   Info,
   ChevronRight,
+  LogOut,
 } from "lucide-react";
 
 import { useNavigate } from "react-router-dom";
@@ -56,21 +57,22 @@ export default function More() {
     },
   ];
 
+  const handleLogout = () => {
+    // Future: Clear authentication/session here.
+    navigate("/login");
+  };
+
   return (
     <MobileLayout>
-
       <Header />
 
       <main className="flex-1 py-4">
-
         <section className="mx-5 bg-white rounded-xl shadow-sm p-4">
-
           <h2 className="text-xl font-semibold mb-5">
             More
           </h2>
 
           <div className="space-y-2">
-
             {items.map((item) => (
               <button
                 key={item.title}
@@ -89,14 +91,27 @@ export default function More() {
               </button>
             ))}
 
+            <hr className="my-2" />
+
+            <button
+              onClick={handleLogout}
+              className="w-full flex justify-between items-center p-3 rounded-lg text-red-500 hover:bg-red-50 transition"
+            >
+              <div className="flex items-center gap-3">
+                <LogOut size={18} />
+                <span>Logout</span>
+              </div>
+
+              <ChevronRight
+                size={18}
+                className="text-red-400"
+              />
+            </button>
           </div>
-
         </section>
-
       </main>
 
       <BottomNavigation />
-
     </MobileLayout>
   );
 }

@@ -18,8 +18,12 @@ import {
 } from "lucide-react";
 
 export default function More() {
-
   const navigate = useNavigate();
+
+  const handleLogout = () => {
+    // Future: Clear authentication/session here.
+    navigate("/login");
+  };
 
   const managementItems = [
     {
@@ -70,187 +74,131 @@ export default function More() {
 
   return (
     <MobileLayout>
-
       <Header />
 
       <main className="flex-1 py-4 overflow-y-auto space-y-5">
-
         {/* Management */}
-
         <section className="mx-5">
-
           <h2 className="text-sm font-semibold text-slate-500 mb-2">
             Management
           </h2>
 
           <div className="bg-white rounded-xl shadow-sm">
-
             {managementItems.map((item) => (
-
               <button
                 key={item.title}
                 onClick={() => navigate(item.route)}
                 className="w-full flex justify-between items-center px-5 py-4 border-b last:border-none"
               >
-
                 <div className="flex items-center gap-3">
-
                   {item.icon}
-
                   <span>{item.title}</span>
-
                 </div>
 
                 <ChevronRight
                   size={18}
                   className="text-slate-400"
                 />
-
               </button>
-
             ))}
-
           </div>
-
         </section>
 
         {/* Operations */}
-
         <section className="mx-5">
-
           <h2 className="text-sm font-semibold text-slate-500 mb-2">
             Operations
           </h2>
 
           <div className="bg-white rounded-xl shadow-sm">
-
             {operationItems.map((item) => (
-
               <button
                 key={item.title}
                 onClick={() => navigate(item.route)}
                 className="w-full flex justify-between items-center px-5 py-4 border-b last:border-none"
               >
-
                 <div className="flex items-center gap-3">
-
                   {item.icon}
-
                   <span>{item.title}</span>
-
                 </div>
 
                 <ChevronRight
                   size={18}
                   className="text-slate-400"
                 />
-
               </button>
-
             ))}
-
           </div>
-
         </section>
 
         {/* Communication */}
-
         <section className="mx-5">
-
           <h2 className="text-sm font-semibold text-slate-500 mb-2">
             Communication
           </h2>
 
           <div className="bg-white rounded-xl shadow-sm">
-
             {communicationItems.map((item) => (
-
               <button
                 key={item.title}
                 onClick={() => navigate(item.route)}
                 className="w-full flex justify-between items-center px-5 py-4 border-b last:border-none"
               >
-
                 <div className="flex items-center gap-3">
-
                   {item.icon}
-
                   <span>{item.title}</span>
-
                 </div>
 
                 <ChevronRight
                   size={18}
                   className="text-slate-400"
                 />
-
               </button>
-
             ))}
-
           </div>
-
         </section>
 
         {/* System */}
-
         <section className="mx-5">
-
           <h2 className="text-sm font-semibold text-slate-500 mb-2">
             System
           </h2>
 
           <div className="bg-white rounded-xl shadow-sm">
-
             {systemItems.map((item) => (
-
               <button
                 key={item.title}
                 onClick={() => navigate(item.route)}
                 className="w-full flex justify-between items-center px-5 py-4 border-b last:border-none"
               >
-
                 <div className="flex items-center gap-3">
-
                   {item.icon}
-
                   <span>{item.title}</span>
-
                 </div>
 
                 <ChevronRight
                   size={18}
                   className="text-slate-400"
                 />
-
               </button>
-
             ))}
 
             <button
-              className="w-full flex justify-between items-center px-5 py-4 text-red-500"
+              onClick={handleLogout}
+              className="w-full flex justify-between items-center px-5 py-4 text-red-500 hover:bg-red-50 transition"
             >
-
               <div className="flex items-center gap-3">
-
                 <LogOut size={18} />
-
                 <span>Logout</span>
-
               </div>
 
               <ChevronRight size={18} />
-
             </button>
-
           </div>
-
         </section>
-
       </main>
 
       <AdminBottomNavigation />
-
     </MobileLayout>
   );
 }

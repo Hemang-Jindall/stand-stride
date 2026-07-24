@@ -46,7 +46,6 @@ import AdminCertificates from "../pages/admin/Certificates";
 import AdminSettings from "../pages/admin/Settings";
 import LeaveRequests from "../pages/admin/LeaveRequests";
 import Performance from "../pages/admin/Performance";
-import Remarks from "../pages/admin/Remarks";
 import AdminNotifications from "../pages/admin/Notifications";
 import AdminMore from "../pages/admin/More";
 
@@ -57,188 +56,80 @@ import VenueAssignments from "../pages/admin/VenueAssignments";
 export default function AppRoutes() {
   return (
     <BrowserRouter>
-
       <Routes>
 
-        {/* =======================
-            Login
-        ======================== */}
+        {/* Login */}
 
-        <Route
-          path="/"
-          element={<Login />}
-        />
+        <Route path="/" element={<Login />} />
+        <Route path="/login" element={<Login />} />
 
-        <Route
-          path="/login"
-          element={<Login />}
-        />
+        {/* Student */}
 
-        {/* =======================
-            Student Routes
-        ======================== */}
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/attendance" element={<Attendance />} />
+        <Route path="/schedule" element={<Schedule />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/certificate" element={<Certificate />} />
+        <Route path="/grievance" element={<Grievance />} />
+        <Route path="/notifications" element={<Notifications />} />
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/announcements" element={<Announcements />} />
+        <Route path="/more" element={<More />} />
+        <Route path="/contacts" element={<SOPContacts />} />
+        <Route path="/emergency" element={<EmergencySupport />} />
+        <Route path="/about" element={<AboutInternship />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/help" element={<Help />} />
 
-        <Route
-          path="/dashboard"
-          element={<Dashboard />}
-        />
+        {/* Admin */}
 
-        <Route
-          path="/attendance"
-          element={<Attendance />}
-        />
-
-        <Route
-          path="/schedule"
-          element={<Schedule />}
-        />
-
-        <Route
-          path="/profile"
-          element={<Profile />}
-        />
-
-        <Route
-          path="/certificate"
-          element={<Certificate />}
-        />
-
-        <Route
-          path="/grievance"
-          element={<Grievance />}
-        />
-
-        <Route
-          path="/notifications"
-          element={<Notifications />}
-        />
-
-        <Route
-          path="/settings"
-          element={<SettingsPage />}
-        />
-
-        <Route
-          path="/announcements"
-          element={<Announcements />}
-        />
-
-        <Route
-          path="/more"
-          element={<More />}
-        />
-
-        <Route
-          path="/contacts"
-          element={<SOPContacts />}
-        />
-
-        <Route
-          path="/emergency"
-          element={<EmergencySupport />}
-        />
-
-        <Route
-          path="/about"
-          element={<AboutInternship />}
-        />
-
-        <Route
-          path="/privacy"
-          element={<Privacy />}
-        />
-
-        <Route
-          path="/help"
-          element={<Help />}
-        />
-
-        {/* =======================
-            Admin Routes
-        ======================== */}
-
-        <Route
-          path="/admin/dashboard"
-          element={<AdminDashboard />}
-        />
-
-        <Route
-          path="/admin/students"
-          element={<Students />}
-        />
-
-        <Route
-          path="/admin/student"
-          element={<StudentDetails />}
-        />
-
-        <Route
-          path="/admin/attendance"
-          element={<AdminAttendance />}
-        />
-
-        <Route
-          path="/admin/grievances"
-          element={<AdminGrievances />}
-        />
-
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/students" element={<Students />} />
+        <Route path="/admin/student" element={<StudentDetails />} />
+        <Route path="/admin/attendance" element={<AdminAttendance />} />
+        <Route path="/admin/grievances" element={<AdminGrievances />} />
         <Route
           path="/admin/grievance-details"
           element={<GrievanceDetails />}
         />
-
         <Route
           path="/admin/certificates"
           element={<AdminCertificates />}
         />
-
         <Route
           path="/admin/leave-requests"
           element={<LeaveRequests />}
         />
-
         <Route
           path="/admin/performance"
           element={<Performance />}
         />
-
-        <Route
-          path="/admin/remarks"
-          element={<Remarks />}
-        />
-
         <Route
           path="/admin/notifications"
           element={<AdminNotifications />}
         />
-
         <Route
           path="/admin/settings"
           element={<AdminSettings />}
         />
-
         <Route
           path="/admin/MasterData"
           element={<MasterData />}
         />
-
         <Route
           path="/admin/MentorAssignments"
           element={<MentorAssignments />}
         />
-
         <Route
           path="/admin/VenueAssignments"
           element={<VenueAssignments />}
         />
-
         <Route
           path="/admin/more"
           element={<AdminMore />}
         />
 
       </Routes>
-
     </BrowserRouter>
   );
 }

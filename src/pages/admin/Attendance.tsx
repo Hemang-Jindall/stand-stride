@@ -1,14 +1,20 @@
+import { useState } from "react";
+
 import MobileLayout from "../../layouts/MobileLayout";
 
 import Header from "../../components/Header";
 import AdminBottomNavigation from "../../components/AdminBottomNavigation";
 
 import {
+  CalendarDays,
   CircleCheck,
   CircleX,
 } from "lucide-react";
 
 export default function AdminAttendance() {
+  const today = new Date().toISOString().split("T")[0];
+
+  const [selectedDate, setSelectedDate] = useState(today);
 
   const attendance = [
     {
@@ -33,28 +39,35 @@ export default function AdminAttendance() {
 
   return (
     <MobileLayout>
-
       <Header />
 
       <main className="flex-1 py-4 overflow-y-auto">
-
         <section className="mx-5">
-
           <h1 className="text-2xl font-bold mb-5">
             Attendance
           </h1>
 
+          <div className="bg-white rounded-xl shadow-sm p-4 mb-5">
+            <label className="flex items-center gap-2 text-sm font-medium text-slate-600 mb-2">
+              <CalendarDays size={18} />
+              Select Date
+            </label>
+
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="w-full rounded-lg border border-slate-200 px-4 py-3 outline-none focus:border-emerald-500"
+            />
+          </div>
+
           <div className="space-y-3">
-
             {attendance.map((student) => (
-
               <div
                 key={student.name}
                 className="bg-white rounded-xl shadow-sm p-4 flex justify-between items-center"
               >
-
                 <div>
-
                   <h3 className="font-semibold">
                     {student.name}
                   </h3>
@@ -62,7 +75,6 @@ export default function AdminAttendance() {
                   <p className="text-sm text-slate-500">
                     Batch {student.batch}
                   </p>
-
                 </div>
 
                 <button
@@ -72,7 +84,6 @@ export default function AdminAttendance() {
                       : "bg-red-500"
                   }`}
                 >
-
                   {student.present ? (
                     <CircleCheck size={18} />
                   ) : (
@@ -80,21 +91,14 @@ export default function AdminAttendance() {
                   )}
 
                   {student.status}
-
                 </button>
-
               </div>
-
             ))}
-
           </div>
-
         </section>
-
       </main>
 
       <AdminBottomNavigation />
-
     </MobileLayout>
   );
 }
