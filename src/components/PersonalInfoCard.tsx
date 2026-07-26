@@ -5,7 +5,45 @@ import {
   GraduationCap,
 } from "lucide-react";
 
+interface StoredStudent {
+  id: string;
+  rollNumber: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string | null;
+
+  batch?: {
+    id: string;
+    name: string;
+  };
+}
+
 export default function PersonalInformationCard() {
+  let student: StoredStudent | null = null;
+
+  try {
+    const stored =
+      localStorage.getItem("student");
+
+    if (stored) {
+      student = JSON.parse(stored);
+    }
+  } catch (error) {
+    console.error(
+      "LOAD PERSONAL INFORMATION ERROR:",
+      error
+    );
+  }
+
+  if (!student) {
+    return (
+      <section className="mx-5 bg-white rounded-xl shadow-sm p-6 text-center text-slate-500">
+        Personal information unavailable.
+      </section>
+    );
+  }
+
   return (
     <section className="mx-5 bg-white rounded-xl shadow-sm p-4">
 
@@ -23,15 +61,13 @@ export default function PersonalInformationCard() {
           />
 
           <div>
-
             <p className="text-xs text-slate-500">
               Student ID
             </p>
 
             <p className="font-medium">
-              SNS2026001
+              {student.rollNumber}
             </p>
-
           </div>
 
         </div>
@@ -43,16 +79,14 @@ export default function PersonalInformationCard() {
             className="text-emerald-600"
           />
 
-          <div>
-
+          <div className="min-w-0">
             <p className="text-xs text-slate-500">
               Email
             </p>
 
-            <p className="font-medium">
-              student@snu.edu.in
+            <p className="font-medium break-all">
+              {student.email}
             </p>
-
           </div>
 
         </div>
@@ -65,15 +99,14 @@ export default function PersonalInformationCard() {
           />
 
           <div>
-
             <p className="text-xs text-slate-500">
               Phone
             </p>
 
             <p className="font-medium">
-              +91 98765 43210
+              {student.phone ??
+                "Not provided"}
             </p>
-
           </div>
 
         </div>
@@ -86,15 +119,14 @@ export default function PersonalInformationCard() {
           />
 
           <div>
-
             <p className="text-xs text-slate-500">
-              Department
+              Batch
             </p>
 
             <p className="font-medium">
-              Computer Science
+              {student.batch?.name ??
+                "Not assigned"}
             </p>
-
           </div>
 
         </div>

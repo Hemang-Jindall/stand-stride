@@ -5,6 +5,7 @@ import BottomNavigation from "../../components/BottomNavigation";
 
 import StudentProfileCard from "../../components/StudentProfileCard";
 import PersonalInformationCard from "../../components/PersonalInfoCard";
+import MentorCard from "../../components/MentorCard";
 
 export default function Profile() {
   return (
@@ -17,6 +18,8 @@ export default function Profile() {
         <StudentProfileCard />
 
         <PersonalInformationCard />
+
+        <MentorCard />
 
       </main>
 

@@ -4,6 +4,8 @@ import {
   Route,
 } from "react-router-dom";
 
+import ProtectedRoute from "../components/ProtectedRoute";
+
 // =======================
 // Login
 // =======================
@@ -21,6 +23,9 @@ import Profile from "../pages/student/Profile";
 
 import Certificate from "../pages/student/Certificate";
 import Grievance from "../pages/student/Grievance";
+
+import StudentLeaveRequests from "../pages/student/LeaveRequests";
+
 import Notifications from "../pages/student/Notifications";
 import SettingsPage from "../pages/student/Settings";
 import Announcements from "../pages/student/Announcements";
@@ -37,16 +42,26 @@ import Help from "../pages/student/Help";
 // =======================
 
 import AdminDashboard from "../pages/admin/Dashboard";
+
 import Students from "../pages/admin/Students";
+import AddStudent from "../pages/admin/AddStudent";
+import EditStudent from "../pages/admin/EditStudent";
 import StudentDetails from "../pages/admin/StudentDetails";
+
 import AdminAttendance from "../pages/admin/Attendance";
+import AdminSchedule from "../pages/admin/Schedule";
+
 import AdminGrievances from "../pages/admin/Grievances";
 import GrievanceDetails from "../pages/admin/GrievanceDetails";
+
 import AdminCertificates from "../pages/admin/Certificates";
-import AdminSettings from "../pages/admin/Settings";
-import LeaveRequests from "../pages/admin/LeaveRequests";
+
+import AdminLeaveRequests from "../pages/admin/LeaveRequests";
+
 import Performance from "../pages/admin/Performance";
+
 import AdminNotifications from "../pages/admin/Notifications";
+import AdminSettings from "../pages/admin/Settings";
 import AdminMore from "../pages/admin/More";
 
 import MasterData from "../pages/admin/MasterData";
@@ -56,80 +71,333 @@ import VenueAssignments from "../pages/admin/VenueAssignments";
 export default function AppRoutes() {
   return (
     <BrowserRouter>
+
       <Routes>
 
-        {/* Login */}
+        {/* =======================
+            Login
+        ======================= */}
 
-        <Route path="/" element={<Login />} />
-        <Route path="/login" element={<Login />} />
+        <Route
+          path="/"
+          element={<Login />}
+        />
 
-        {/* Student */}
+        <Route
+          path="/login"
+          element={<Login />}
+        />
 
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/attendance" element={<Attendance />} />
-        <Route path="/schedule" element={<Schedule />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/certificate" element={<Certificate />} />
-        <Route path="/grievance" element={<Grievance />} />
-        <Route path="/notifications" element={<Notifications />} />
-        <Route path="/settings" element={<SettingsPage />} />
-        <Route path="/announcements" element={<Announcements />} />
-        <Route path="/more" element={<More />} />
-        <Route path="/contacts" element={<SOPContacts />} />
-        <Route path="/emergency" element={<EmergencySupport />} />
-        <Route path="/about" element={<AboutInternship />} />
-        <Route path="/privacy" element={<Privacy />} />
-        <Route path="/help" element={<Help />} />
+        {/* =======================
+            Student
+        ======================= */}
 
-        {/* Admin */}
+        <Route
+          path="/dashboard"
+          element={<Dashboard />}
+        />
 
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
-        <Route path="/admin/students" element={<Students />} />
-        <Route path="/admin/student" element={<StudentDetails />} />
-        <Route path="/admin/attendance" element={<AdminAttendance />} />
-        <Route path="/admin/grievances" element={<AdminGrievances />} />
+        <Route
+          path="/attendance"
+          element={<Attendance />}
+        />
+
+        <Route
+          path="/schedule"
+          element={<Schedule />}
+        />
+
+        <Route
+          path="/profile"
+          element={<Profile />}
+        />
+
+        <Route
+          path="/certificate"
+          element={<Certificate />}
+        />
+
+        <Route
+          path="/grievance"
+          element={<Grievance />}
+        />
+
+        <Route
+          path="/leave-requests"
+          element={
+            <StudentLeaveRequests />
+          }
+        />
+
+        <Route
+          path="/notifications"
+          element={<Notifications />}
+        />
+
+        <Route
+          path="/settings"
+          element={<SettingsPage />}
+        />
+
+        <Route
+          path="/announcements"
+          element={<Announcements />}
+        />
+
+        <Route
+          path="/more"
+          element={<More />}
+        />
+
+        <Route
+          path="/contacts"
+          element={<SOPContacts />}
+        />
+
+        <Route
+          path="/emergency"
+          element={
+            <EmergencySupport />
+          }
+        />
+
+        <Route
+          path="/about"
+          element={
+            <AboutInternship />
+          }
+        />
+
+        <Route
+          path="/privacy"
+          element={<Privacy />}
+        />
+
+        <Route
+          path="/help"
+          element={<Help />}
+        />
+
+        {/* =======================
+            Admin Dashboard
+        ======================= */}
+
+        <Route
+          path="/admin/dashboard"
+          element={
+            <ProtectedRoute>
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* =======================
+            Students
+        ======================= */}
+
+        <Route
+          path="/admin/students"
+          element={
+            <ProtectedRoute>
+              <Students />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/students/add"
+          element={
+            <ProtectedRoute>
+              <AddStudent />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/students/edit"
+          element={
+            <ProtectedRoute>
+              <EditStudent />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/student"
+          element={
+            <ProtectedRoute>
+              <StudentDetails />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* =======================
+            Attendance
+        ======================= */}
+
+        <Route
+          path="/admin/attendance"
+          element={
+            <ProtectedRoute>
+              <AdminAttendance />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* =======================
+            Schedule
+        ======================= */}
+
+        <Route
+          path="/admin/schedule"
+          element={
+            <ProtectedRoute>
+              <AdminSchedule />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* =======================
+            Grievances
+        ======================= */}
+
+        <Route
+          path="/admin/grievances"
+          element={
+            <ProtectedRoute>
+              <AdminGrievances />
+            </ProtectedRoute>
+          }
+        />
+
         <Route
           path="/admin/grievance-details"
-          element={<GrievanceDetails />}
+          element={
+            <ProtectedRoute>
+              <GrievanceDetails />
+            </ProtectedRoute>
+          }
         />
+
+        {/* =======================
+            Certificates
+        ======================= */}
+
         <Route
           path="/admin/certificates"
-          element={<AdminCertificates />}
+          element={
+            <ProtectedRoute>
+              <AdminCertificates />
+            </ProtectedRoute>
+          }
         />
+
+        {/* =======================
+            Leave Requests
+        ======================= */}
+
         <Route
           path="/admin/leave-requests"
-          element={<LeaveRequests />}
+          element={
+            <ProtectedRoute>
+              <AdminLeaveRequests />
+            </ProtectedRoute>
+          }
         />
+
+        {/* =======================
+            Performance
+        ======================= */}
+
         <Route
           path="/admin/performance"
-          element={<Performance />}
+          element={
+            <ProtectedRoute>
+              <Performance />
+            </ProtectedRoute>
+          }
         />
+
+        {/* =======================
+            Notifications
+        ======================= */}
+
         <Route
           path="/admin/notifications"
-          element={<AdminNotifications />}
+          element={
+            <ProtectedRoute>
+              <AdminNotifications />
+            </ProtectedRoute>
+          }
         />
+
+        {/* =======================
+            Settings
+        ======================= */}
+
         <Route
           path="/admin/settings"
-          element={<AdminSettings />}
+          element={
+            <ProtectedRoute>
+              <AdminSettings />
+            </ProtectedRoute>
+          }
         />
+
+        {/* =======================
+            Master Data
+        ======================= */}
+
         <Route
           path="/admin/MasterData"
-          element={<MasterData />}
+          element={
+            <ProtectedRoute>
+              <MasterData />
+            </ProtectedRoute>
+          }
         />
+
+        {/* =======================
+            Mentor Assignments
+        ======================= */}
+
         <Route
           path="/admin/MentorAssignments"
-          element={<MentorAssignments />}
+          element={
+            <ProtectedRoute>
+              <MentorAssignments />
+            </ProtectedRoute>
+          }
         />
+
+        {/* =======================
+            Venue Assignments
+        ======================= */}
+
         <Route
           path="/admin/VenueAssignments"
-          element={<VenueAssignments />}
+          element={
+            <ProtectedRoute>
+              <VenueAssignments />
+            </ProtectedRoute>
+          }
         />
+
+        {/* =======================
+            Admin More
+        ======================= */}
+
         <Route
           path="/admin/more"
-          element={<AdminMore />}
+          element={
+            <ProtectedRoute>
+              <AdminMore />
+            </ProtectedRoute>
+          }
         />
 
       </Routes>
+
     </BrowserRouter>
   );
 }

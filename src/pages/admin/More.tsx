@@ -11,6 +11,8 @@ import {
   MapPinned,
   BadgeCheck,
   CalendarDays,
+  CalendarClock,
+  TriangleAlert,
   Bell,
   Settings,
   LogOut,
@@ -20,10 +22,24 @@ import {
 export default function More() {
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    // Future: Clear authentication/session here.
-    navigate("/login");
-  };
+  // =========================
+  // Logout
+  // =========================
+
+  function handleLogout() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("admin");
+    localStorage.removeItem("student");
+    localStorage.removeItem("role");
+
+    navigate("/login", {
+      replace: true,
+    });
+  }
+
+  // =========================
+  // Management
+  // =========================
 
   const managementItems = [
     {
@@ -43,7 +59,16 @@ export default function More() {
     },
   ];
 
+  // =========================
+  // Operations
+  // =========================
+
   const operationItems = [
+    {
+      title: "Schedule",
+      icon: <CalendarClock size={18} />,
+      route: "/admin/schedule",
+    },
     {
       title: "Certificates",
       icon: <BadgeCheck size={18} />,
@@ -54,7 +79,16 @@ export default function More() {
       icon: <CalendarDays size={18} />,
       route: "/admin/leave-requests",
     },
+    {
+      title: "Grievances",
+      icon: <TriangleAlert size={18} />,
+      route: "/admin/grievances",
+    },
   ];
+
+  // =========================
+  // Communication
+  // =========================
 
   const communicationItems = [
     {
@@ -63,6 +97,10 @@ export default function More() {
       route: "/admin/notifications",
     },
   ];
+
+  // =========================
+  // System
+  // =========================
 
   const systemItems = [
     {
@@ -77,7 +115,9 @@ export default function More() {
       <Header />
 
       <main className="flex-1 py-4 overflow-y-auto space-y-5">
+
         {/* Management */}
+
         <section className="mx-5">
           <h2 className="text-sm font-semibold text-slate-500 mb-2">
             Management
@@ -87,12 +127,16 @@ export default function More() {
             {managementItems.map((item) => (
               <button
                 key={item.title}
+                type="button"
                 onClick={() => navigate(item.route)}
-                className="w-full flex justify-between items-center px-5 py-4 border-b last:border-none"
+                className="w-full flex justify-between items-center px-5 py-4 border-b last:border-none hover:bg-slate-50 transition"
               >
                 <div className="flex items-center gap-3">
                   {item.icon}
-                  <span>{item.title}</span>
+
+                  <span>
+                    {item.title}
+                  </span>
                 </div>
 
                 <ChevronRight
@@ -105,6 +149,7 @@ export default function More() {
         </section>
 
         {/* Operations */}
+
         <section className="mx-5">
           <h2 className="text-sm font-semibold text-slate-500 mb-2">
             Operations
@@ -114,12 +159,16 @@ export default function More() {
             {operationItems.map((item) => (
               <button
                 key={item.title}
+                type="button"
                 onClick={() => navigate(item.route)}
-                className="w-full flex justify-between items-center px-5 py-4 border-b last:border-none"
+                className="w-full flex justify-between items-center px-5 py-4 border-b last:border-none hover:bg-slate-50 transition"
               >
                 <div className="flex items-center gap-3">
                   {item.icon}
-                  <span>{item.title}</span>
+
+                  <span>
+                    {item.title}
+                  </span>
                 </div>
 
                 <ChevronRight
@@ -132,6 +181,7 @@ export default function More() {
         </section>
 
         {/* Communication */}
+
         <section className="mx-5">
           <h2 className="text-sm font-semibold text-slate-500 mb-2">
             Communication
@@ -141,12 +191,16 @@ export default function More() {
             {communicationItems.map((item) => (
               <button
                 key={item.title}
+                type="button"
                 onClick={() => navigate(item.route)}
-                className="w-full flex justify-between items-center px-5 py-4 border-b last:border-none"
+                className="w-full flex justify-between items-center px-5 py-4 border-b last:border-none hover:bg-slate-50 transition"
               >
                 <div className="flex items-center gap-3">
                   {item.icon}
-                  <span>{item.title}</span>
+
+                  <span>
+                    {item.title}
+                  </span>
                 </div>
 
                 <ChevronRight
@@ -159,6 +213,7 @@ export default function More() {
         </section>
 
         {/* System */}
+
         <section className="mx-5">
           <h2 className="text-sm font-semibold text-slate-500 mb-2">
             System
@@ -168,12 +223,16 @@ export default function More() {
             {systemItems.map((item) => (
               <button
                 key={item.title}
+                type="button"
                 onClick={() => navigate(item.route)}
-                className="w-full flex justify-between items-center px-5 py-4 border-b last:border-none"
+                className="w-full flex justify-between items-center px-5 py-4 border-b last:border-none hover:bg-slate-50 transition"
               >
                 <div className="flex items-center gap-3">
                   {item.icon}
-                  <span>{item.title}</span>
+
+                  <span>
+                    {item.title}
+                  </span>
                 </div>
 
                 <ChevronRight
@@ -184,18 +243,26 @@ export default function More() {
             ))}
 
             <button
+              type="button"
               onClick={handleLogout}
               className="w-full flex justify-between items-center px-5 py-4 text-red-500 hover:bg-red-50 transition"
             >
               <div className="flex items-center gap-3">
                 <LogOut size={18} />
-                <span>Logout</span>
+
+                <span>
+                  Logout
+                </span>
               </div>
 
-              <ChevronRight size={18} />
+              <ChevronRight
+                size={18}
+                className="text-red-400"
+              />
             </button>
           </div>
         </section>
+
       </main>
 
       <AdminBottomNavigation />

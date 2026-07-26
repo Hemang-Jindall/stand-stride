@@ -1,0 +1,178 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Admin {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Venue {
+  id        String   @id @default(cuid())
+  name      String
+  address   String?
+  createdAt DateTime @default(now())
+
+  batches Batch[]
+}
+
+model Batch {
+  id        String   @id @default(cuid())
+  name      String
+  startDate DateTime
+  endDate   DateTime
+  venueId   String
+  createdAt DateTime @default(now())
+
+  venue         Venue          @relation(fields: [venueId], references: [id])
+  students      Student[]
+  scheduleItems ScheduleItem[]
+}
+
+model ScheduleItem {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  date        DateTime
+  startTime   String
+  endTime     String
+  location    String?
+  batchId     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  batch Batch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@index([batchId, date])
+}
+
+model Mentor {
+  id        String   @id @default(cuid())
+  name      String
+  email     String?  @unique
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  students Student[]
+}
+
+model Student {
+  id         String @id @default(cuid())
+  rollNumber String @unique
+  firstName  String
+  lastName   String
+  email      String @unique
+  password   String
+  phone      String?
+  batchId    String
+  mentorId   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  batch  Batch   @relation(fields: [batchId], references: [id])
+  mentor Mentor? @relation(fields: [mentorId], references: [id], onDelete: SetNull)
+
+  attendance    Attendance[]
+  certificates  Certificate[]
+  grievances    Grievance[]
+  leaveRequests LeaveRequest[]
+  notifications Notification[]
+
+  performance Performance?
+
+  @@index([mentorId])
+}
+
+model Attendance {
+  id        String           @id @default(cuid())
+  date      DateTime
+  status    AttendanceStatus
+  studentId String
+  createdAt DateTime         @default(now())
+
+  student Student @relation(fields: [studentId], references: [id])
+
+  @@unique([studentId, date])
+}
+
+model LeaveRequest {
+  id        String      @id @default(cuid())
+  reason    String
+  fromDate  DateTime
+  toDate    DateTime
+  status    LeaveStatus @default(PENDING)
+  studentId String
+  createdAt DateTime    @default(now())
+
+  student Student @relation(fields: [studentId], references: [id])
+}
+
+model Certificate {
+  id        String   @id @default(cuid())
+  title     String
+  fileUrl   String?
+  issuedOn  DateTime
+  studentId String
+  createdAt DateTime @default(now())
+
+  student Student @relation(fields: [studentId], references: [id])
+}
+
+model Grievance {
+  id          String          @id @default(cuid())
+  title       String
+  description String
+  status      GrievanceStatus @default(OPEN)
+  studentId   String
+  createdAt   DateTime        @default(now())
+
+  student Student @relation(fields: [studentId], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  title     String
+  message   String
+  studentId String
+  createdAt DateTime @default(now())
+
+  student Student @relation(fields: [studentId], references: [id])
+}
+
+model Performance {
+  id        String   @id @default(cuid())
+  remarks   String?
+  studentId String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LEAVE
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum GrievanceStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+}
