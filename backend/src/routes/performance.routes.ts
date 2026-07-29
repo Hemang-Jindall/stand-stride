@@ -4,7 +4,8 @@ import {
 
 import {
   getStudentPerformance,
-  savePerformanceRemarks,
+  getMyPerformance,
+  updatePerformance,
 } from "../controllers/performance.controller.js";
 
 import {
@@ -14,8 +15,17 @@ import {
 const router = Router();
 
 // =========================
-// Student Performance
-// Admin
+// STUDENT
+// =========================
+
+router.get(
+  "/me",
+  authenticate,
+  getMyPerformance
+);
+
+// =========================
+// ADMIN
 // =========================
 
 router.get(
@@ -25,9 +35,9 @@ router.get(
 );
 
 router.put(
-  "/:studentId/remarks",
+  "/:studentId",
   authenticate,
-  savePerformanceRemarks
+  updatePerformance
 );
 
 export default router;

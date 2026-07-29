@@ -7,8 +7,173 @@ import type {
 } from "../middleware/auth.middleware.js";
 
 // =========================
+// HELPER
+// Build Performance Response
+// =========================
+
+async function buildPerformanceResponse(
+  studentId: string
+) {
+  const student =
+    await prisma.student.findUnique({
+      where: {
+        id: studentId,
+      },
+
+      include: {
+        batch: {
+          include: {
+            venue: true,
+          },
+        },
+
+        mentor: true,
+
+        attendance: {
+          orderBy: {
+            date: "asc",
+          },
+        },
+
+        certificates: {
+          orderBy: {
+            issuedOn: "desc",
+          },
+        },
+
+        performance: true,
+      },
+    });
+
+  if (!student) {
+    return null;
+  }
+
+  // =========================
+  // ATTENDANCE
+  // =========================
+
+  const totalAttendance =
+    student.attendance.length;
+
+  const presentCount =
+    student.attendance.filter(
+      (record) =>
+        record.status === "PRESENT"
+    ).length;
+
+  const absentCount =
+    student.attendance.filter(
+      (record) =>
+        record.status === "ABSENT"
+    ).length;
+
+  const leaveCount =
+    student.attendance.filter(
+      (record) =>
+        record.status === "LEAVE"
+    ).length;
+
+  const attendancePercentage =
+    totalAttendance > 0
+      ? Math.round(
+          (presentCount /
+            totalAttendance) *
+            100
+        )
+      : 0;
+
+  // =========================
+  // CERTIFICATE
+  // =========================
+
+  const certificateIssued =
+    student.certificates.length > 0;
+
+  // =========================
+  // RESPONSE
+  // =========================
+
+  return {
+    student: {
+      id: student.id,
+
+      rollNumber:
+        student.rollNumber,
+
+      firstName:
+        student.firstName,
+
+      lastName:
+        student.lastName,
+
+      email:
+        student.email,
+
+      phone:
+        student.phone,
+
+      batch:
+        student.batch,
+
+      mentor:
+        student.mentor,
+    },
+
+    attendance: {
+      total:
+        totalAttendance,
+
+      present:
+        presentCount,
+
+      absent:
+        absentCount,
+
+      leave:
+        leaveCount,
+
+      percentage:
+        attendancePercentage,
+    },
+
+    certificate: {
+      issued:
+        certificateIssued,
+
+      eligible:
+        student.performance
+          ?.certificateEligible ??
+        false,
+
+      certificate:
+        student.certificates[0] ??
+        null,
+    },
+
+    performance: {
+      overallProgress:
+        student.performance
+          ?.overallProgress ??
+        0,
+
+      remarks:
+        student.performance
+          ?.remarks ??
+        "",
+
+      certificateEligible:
+        student.performance
+          ?.certificateEligible ??
+        false,
+    },
+  };
+}
+
+// =========================
 // GET STUDENT PERFORMANCE
 // Admin
+// GET /api/performance/:studentId
 // =========================
 
 export async function getStudentPerformance(
@@ -21,145 +186,40 @@ export async function getStudentPerformance(
       req.user.role !== "admin"
     ) {
       return res.status(403).json({
-        message: "Admin access required",
+        message:
+          "Admin access required",
       });
     }
 
-    const studentId = req.params.studentId;
+    const studentId =
+      req.params.studentId;
 
     if (
-      typeof studentId !== "string" ||
+      typeof studentId !==
+        "string" ||
       !studentId
     ) {
       return res.status(400).json({
-        message: "Student ID is required",
+        message:
+          "Student ID is required",
       });
     }
 
-    const student =
-      await prisma.student.findUnique({
-        where: {
-          id: studentId,
-        },
+    const result =
+      await buildPerformanceResponse(
+        studentId
+      );
 
-        include: {
-          batch: {
-            include: {
-              venue: true,
-            },
-          },
-
-          mentor: true,
-
-          attendance: {
-            orderBy: {
-              date: "asc",
-            },
-          },
-
-          certificates: {
-            orderBy: {
-              issuedOn: "desc",
-            },
-          },
-
-          performance: true,
-        },
-      });
-
-    if (!student) {
+    if (!result) {
       return res.status(404).json({
-        message: "Student not found",
+        message:
+          "Student not found",
       });
     }
 
-    // =========================
-    // ATTENDANCE
-    // =========================
-
-    const totalAttendance =
-      student.attendance.length;
-
-    const presentCount =
-      student.attendance.filter(
-        (record) =>
-          record.status === "PRESENT"
-      ).length;
-
-    const absentCount =
-      student.attendance.filter(
-        (record) =>
-          record.status === "ABSENT"
-      ).length;
-
-    const leaveCount =
-      student.attendance.filter(
-        (record) =>
-          record.status === "LEAVE"
-      ).length;
-
-    const attendancePercentage =
-      totalAttendance > 0
-        ? Math.round(
-            (presentCount /
-              totalAttendance) *
-              100
-          )
-        : 0;
-
-    // =========================
-    // CERTIFICATE
-    // =========================
-
-    const certificateIssued =
-      student.certificates.length > 0;
-
-    // =========================
-    // RESPONSE
-    // =========================
-
-    return res.status(200).json({
-      student: {
-        id: student.id,
-        rollNumber:
-          student.rollNumber,
-
-        firstName:
-          student.firstName,
-
-        lastName:
-          student.lastName,
-
-        email: student.email,
-        phone: student.phone,
-
-        batch: student.batch,
-
-        mentor: student.mentor,
-      },
-
-      attendance: {
-        total: totalAttendance,
-        present: presentCount,
-        absent: absentCount,
-        leave: leaveCount,
-        percentage:
-          attendancePercentage,
-      },
-
-      certificate: {
-        issued:
-          certificateIssued,
-
-        certificate:
-          student.certificates[0] ??
-          null,
-      },
-
-      remarks:
-        student.performance
-          ?.remarks ?? "",
-    });
+    return res
+      .status(200)
+      .json(result);
   } catch (error) {
     console.error(
       "GET STUDENT PERFORMANCE ERROR:",
@@ -174,11 +234,61 @@ export async function getStudentPerformance(
 }
 
 // =========================
-// SAVE REMARKS
-// Admin
+// GET MY PERFORMANCE
+// Student
+// GET /api/performance/me
 // =========================
 
-export async function savePerformanceRemarks(
+export async function getMyPerformance(
+  req: AuthRequest,
+  res: Response
+) {
+  try {
+    if (
+      !req.user ||
+      req.user.role !== "student"
+    ) {
+      return res.status(403).json({
+        message:
+          "Student access required",
+      });
+    }
+
+    const result =
+      await buildPerformanceResponse(
+        req.user.id
+      );
+
+    if (!result) {
+      return res.status(404).json({
+        message:
+          "Student not found",
+      });
+    }
+
+    return res
+      .status(200)
+      .json(result);
+  } catch (error) {
+    console.error(
+      "GET MY PERFORMANCE ERROR:",
+      error
+    );
+
+    return res.status(500).json({
+      message:
+        "Failed to load performance.",
+    });
+  }
+}
+
+// =========================
+// UPDATE PERFORMANCE
+// Admin
+// PUT /api/performance/:studentId
+// =========================
+
+export async function updatePerformance(
   req: AuthRequest,
   res: Response
 ) {
@@ -188,21 +298,47 @@ export async function savePerformanceRemarks(
       req.user.role !== "admin"
     ) {
       return res.status(403).json({
-        message: "Admin access required",
+        message:
+          "Admin access required",
       });
     }
 
     const studentId =
       req.params.studentId;
 
-    const { remarks } = req.body;
-
     if (
-      typeof studentId !== "string" ||
+      typeof studentId !==
+        "string" ||
       !studentId
     ) {
       return res.status(400).json({
-        message: "Student ID is required",
+        message:
+          "Student ID is required",
+      });
+    }
+
+    const {
+      overallProgress,
+      remarks,
+      certificateEligible,
+    } = req.body;
+
+    // =========================
+    // VALIDATION
+    // =========================
+
+    if (
+      typeof overallProgress !==
+        "number" ||
+      !Number.isInteger(
+        overallProgress
+      ) ||
+      overallProgress < 0 ||
+      overallProgress > 100
+    ) {
+      return res.status(400).json({
+        message:
+          "Overall progress must be an integer between 0 and 100",
       });
     }
 
@@ -214,6 +350,20 @@ export async function savePerformanceRemarks(
           "Remarks must be a string",
       });
     }
+
+    if (
+      typeof certificateEligible !==
+      "boolean"
+    ) {
+      return res.status(400).json({
+        message:
+          "Certificate eligibility must be a boolean",
+      });
+    }
+
+    // =========================
+    // CHECK STUDENT
+    // =========================
 
     const student =
       await prisma.student.findUnique({
@@ -228,9 +378,14 @@ export async function savePerformanceRemarks(
 
     if (!student) {
       return res.status(404).json({
-        message: "Student not found",
+        message:
+          "Student not found",
       });
     }
+
+    // =========================
+    // UPSERT PERFORMANCE
+    // =========================
 
     const performance =
       await prisma.performance.upsert({
@@ -239,30 +394,41 @@ export async function savePerformanceRemarks(
         },
 
         update: {
-          remarks: remarks.trim(),
+          overallProgress,
+
+          remarks:
+            remarks.trim(),
+
+          certificateEligible,
         },
 
         create: {
           studentId,
-          remarks: remarks.trim(),
+
+          overallProgress,
+
+          remarks:
+            remarks.trim(),
+
+          certificateEligible,
         },
       });
 
     return res.status(200).json({
       message:
-        "Remarks saved successfully",
+        "Performance updated successfully",
 
       performance,
     });
   } catch (error) {
     console.error(
-      "SAVE PERFORMANCE REMARKS ERROR:",
+      "UPDATE PERFORMANCE ERROR:",
       error
     );
 
     return res.status(500).json({
       message:
-        "Failed to save remarks.",
+        "Failed to update performance.",
     });
   }
 }

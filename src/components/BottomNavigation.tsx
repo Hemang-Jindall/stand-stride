@@ -9,7 +9,11 @@ import {
 import { NavLink } from "react-router-dom";
 
 export default function BottomNavigation() {
-  const linkClass = ({ isActive }: { isActive: boolean }) =>
+  const linkClass = ({
+    isActive,
+  }: {
+    isActive: boolean;
+  }) =>
     `flex flex-col items-center transition-colors ${
       isActive
         ? "text-emerald-600"
@@ -22,10 +26,11 @@ export default function BottomNavigation() {
       <div className="flex justify-around items-center h-14">
 
         <NavLink
-          to="/"
+          to="/dashboard"
           className={linkClass}
         >
           <House size={20} />
+
           <span className="text-[10px] mt-1">
             Home
           </span>
@@ -36,6 +41,7 @@ export default function BottomNavigation() {
           className={linkClass}
         >
           <CalendarDays size={20} />
+
           <span className="text-[10px] mt-1">
             Schedule
           </span>
@@ -46,6 +52,7 @@ export default function BottomNavigation() {
           className={linkClass}
         >
           <ClipboardCheck size={20} />
+
           <span className="text-[10px] mt-1">
             Attendance
           </span>
@@ -56,6 +63,7 @@ export default function BottomNavigation() {
           className={linkClass}
         >
           <User size={20} />
+
           <span className="text-[10px] mt-1">
             Profile
           </span>
@@ -66,6 +74,7 @@ export default function BottomNavigation() {
           className={linkClass}
         >
           <Ellipsis size={20} />
+
           <span className="text-[10px] mt-1">
             More
           </span>

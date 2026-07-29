@@ -35,6 +35,7 @@ model Batch {
   venue         Venue          @relation(fields: [venueId], references: [id])
   students      Student[]
   scheduleItems ScheduleItem[]
+  topics        Topic[]
 }
 
 model ScheduleItem {
@@ -52,6 +53,20 @@ model ScheduleItem {
   batch Batch @relation(fields: [batchId], references: [id], onDelete: Cascade)
 
   @@index([batchId, date])
+}
+
+model Topic {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  dayNumber   Int
+  batchId     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  batch Batch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@index([batchId, dayNumber])
 }
 
 model Mentor {
@@ -150,11 +165,13 @@ model Notification {
 }
 
 model Performance {
-  id        String   @id @default(cuid())
-  remarks   String?
-  studentId String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                  String   @id @default(cuid())
+  overallProgress     Int      @default(0)
+  remarks             String?
+  certificateEligible Boolean  @default(false)
+  studentId           String   @unique
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
 }
