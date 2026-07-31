@@ -12,6 +12,7 @@ import notificationRoutes from "./routes/notification.routes.js";
 import scheduleRoutes from "./routes/schedule.routes.js";
 import mentorRoutes from "./routes/mentor.routes.js";
 import performanceRoutes from "./routes/performance.routes.js";
+import masterDataRoutes from "./routes/masterData.routes.js";
 
 const app = express();
 
@@ -33,7 +34,7 @@ app.get("/", (_, res) => {
 });
 
 // =======================
-// Routes
+// Authentication
 // =======================
 
 app.use(
@@ -41,54 +42,103 @@ app.use(
   authRoutes
 );
 
+// =======================
+// Students
+// =======================
+
 app.use(
   "/api/students",
   studentRoutes
 );
+
+// =======================
+// Batches
+// =======================
 
 app.use(
   "/api/batches",
   batchRoutes
 );
 
+// =======================
+// Attendance
+// =======================
+
 app.use(
   "/api/attendance",
   attendanceRoutes
 );
+
+// =======================
+// Leave Requests
+// =======================
 
 app.use(
   "/api/leave-requests",
   leaveRequestRoutes
 );
 
+// =======================
+// Grievances
+// =======================
+
 app.use(
   "/api/grievances",
   grievanceRoutes
 );
+
+// =======================
+// Certificates
+// =======================
 
 app.use(
   "/api/certificates",
   certificateRoutes
 );
 
+// =======================
+// Notifications
+// =======================
+
 app.use(
   "/api/notifications",
   notificationRoutes
 );
+
+// =======================
+// Schedule
+// =======================
 
 app.use(
   "/api/schedule",
   scheduleRoutes
 );
 
+// =======================
+// Mentors
+// =======================
+
 app.use(
   "/api/mentors",
   mentorRoutes
 );
 
+// =======================
+// Performance
+// =======================
+
 app.use(
   "/api/performance",
   performanceRoutes
+);
+
+// =======================
+// Master Data
+// =======================
+
+app.use(
+  "/api/master-data",
+  masterDataRoutes
 );
 
 export default app;

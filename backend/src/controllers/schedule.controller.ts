@@ -7,8 +7,34 @@ import type {
 } from "../middleware/auth.middleware.js";
 
 // =========================
+// HELPER — GET MENTOR PROFILE
+// =========================
+
+async function getLoggedInMentor(
+  adminId: string
+) {
+  return prisma.mentor.findUnique({
+    where: {
+      adminId,
+    },
+
+    select: {
+      id: true,
+    },
+  });
+}
+
+// =========================
 // GET ALL SCHEDULE ITEMS
-// Admin
+// Staff
+//
+// MENTOR:
+// Only schedule items belonging
+// to batches containing students
+// assigned to that mentor.
+//
+// FACILITATOR / COORDINATOR / ADMIN:
+// All schedule items.
 // =========================
 
 export async function getScheduleItems(
@@ -21,9 +47,93 @@ export async function getScheduleItems(
       req.user.role !== "admin"
     ) {
       return res.status(403).json({
-        message: "Admin access required",
+        message:
+          "Staff access required",
       });
     }
+
+    // =========================
+    // MENTOR
+    // =========================
+
+    if (
+      req.user.adminRole === "MENTOR"
+    ) {
+      const mentor =
+        await getLoggedInMentor(
+          req.user.id
+        );
+
+      if (!mentor) {
+        return res.status(403).json({
+          message:
+            "Mentor profile not found",
+        });
+      }
+
+      // Get all batches containing
+      // students assigned to mentor.
+
+      const assignedStudents =
+        await prisma.student.findMany({
+          where: {
+            mentorId: mentor.id,
+          },
+
+          select: {
+            batchId: true,
+          },
+        });
+
+      const batchIds = [
+        ...new Set(
+          assignedStudents.map(
+            (student) =>
+              student.batchId
+          )
+        ),
+      ];
+
+      if (batchIds.length === 0) {
+        return res
+          .status(200)
+          .json([]);
+      }
+
+      const items =
+        await prisma.scheduleItem.findMany({
+          where: {
+            batchId: {
+              in: batchIds,
+            },
+          },
+
+          include: {
+            batch: {
+              include: {
+                venue: true,
+              },
+            },
+          },
+
+          orderBy: [
+            {
+              date: "asc",
+            },
+            {
+              startTime: "asc",
+            },
+          ],
+        });
+
+      return res
+        .status(200)
+        .json(items);
+    }
+
+    // =========================
+    // OTHER STAFF
+    // =========================
 
     const items =
       await prisma.scheduleItem.findMany({
@@ -45,7 +155,9 @@ export async function getScheduleItems(
         ],
       });
 
-    return res.json(items);
+    return res
+      .status(200)
+      .json(items);
   } catch (error) {
     console.error(
       "GET SCHEDULE ITEMS ERROR:",
@@ -53,7 +165,8 @@ export async function getScheduleItems(
     );
 
     return res.status(500).json({
-      message: "Failed to load schedule.",
+      message:
+        "Failed to load schedule.",
     });
   }
 }
@@ -73,7 +186,8 @@ export async function getMySchedule(
       req.user.role !== "student"
     ) {
       return res.status(403).json({
-        message: "Student access required",
+        message:
+          "Student access required",
       });
     }
 
@@ -91,14 +205,16 @@ export async function getMySchedule(
 
     if (!student) {
       return res.status(404).json({
-        message: "Student not found",
+        message:
+          "Student not found",
       });
     }
 
     const items =
       await prisma.scheduleItem.findMany({
         where: {
-          batchId: student.batchId,
+          batchId:
+            student.batchId,
         },
 
         include: {
@@ -119,7 +235,9 @@ export async function getMySchedule(
         ],
       });
 
-    return res.json(items);
+    return res
+      .status(200)
+      .json(items);
   } catch (error) {
     console.error(
       "GET MY SCHEDULE ERROR:",
@@ -127,14 +245,18 @@ export async function getMySchedule(
     );
 
     return res.status(500).json({
-      message: "Failed to load schedule.",
+      message:
+        "Failed to load schedule.",
     });
   }
 }
 
 // =========================
 // CREATE SCHEDULE ITEM
-// Admin
+// Authorized staff only
+//
+// Route middleware:
+// COORDINATOR / ADMIN
 // =========================
 
 export async function createScheduleItem(
@@ -147,7 +269,8 @@ export async function createScheduleItem(
       req.user.role !== "admin"
     ) {
       return res.status(403).json({
-        message: "Admin access required",
+        message:
+          "Staff access required",
       });
     }
 
@@ -162,7 +285,7 @@ export async function createScheduleItem(
     } = req.body;
 
     // =========================
-    // Validation
+    // VALIDATION
     // =========================
 
     if (
@@ -170,52 +293,59 @@ export async function createScheduleItem(
       !title.trim()
     ) {
       return res.status(400).json({
-        message: "Title is required",
+        message:
+          "Title is required",
       });
     }
 
     if (
       typeof date !== "string" ||
-      !date
+      !date.trim()
     ) {
       return res.status(400).json({
-        message: "Date is required",
+        message:
+          "Date is required",
       });
     }
 
     if (
       typeof startTime !== "string" ||
-      !startTime
+      !startTime.trim()
     ) {
       return res.status(400).json({
-        message: "Start time is required",
+        message:
+          "Start time is required",
       });
     }
 
     if (
       typeof endTime !== "string" ||
-      !endTime
+      !endTime.trim()
     ) {
       return res.status(400).json({
-        message: "End time is required",
+        message:
+          "End time is required",
       });
     }
 
     if (
       typeof batchId !== "string" ||
-      !batchId
+      !batchId.trim()
     ) {
       return res.status(400).json({
-        message: "Batch is required",
+        message:
+          "Batch is required",
       });
     }
 
     // =========================
-    // Parse Date
+    // PARSE DATE
     // =========================
 
     const parsedDate =
-      new Date(`${date}T00:00:00.000Z`);
+      new Date(
+        `${date}T00:00:00.000Z`
+      );
 
     if (
       Number.isNaN(
@@ -223,12 +353,13 @@ export async function createScheduleItem(
       )
     ) {
       return res.status(400).json({
-        message: "Invalid date",
+        message:
+          "Invalid date",
       });
     }
 
     // =========================
-    // Check Batch
+    // CHECK BATCH
     // =========================
 
     const batch =
@@ -236,37 +367,48 @@ export async function createScheduleItem(
         where: {
           id: batchId,
         },
+
+        select: {
+          id: true,
+        },
       });
 
     if (!batch) {
       return res.status(404).json({
-        message: "Batch not found",
+        message:
+          "Batch not found",
       });
     }
 
     // =========================
-    // Create
+    // CREATE
     // =========================
 
     const item =
       await prisma.scheduleItem.create({
         data: {
-          title: title.trim(),
+          title:
+            title.trim(),
 
           description:
-            typeof description === "string" &&
+            typeof description ===
+              "string" &&
             description.trim()
               ? description.trim()
               : null,
 
-          date: parsedDate,
+          date:
+            parsedDate,
 
-          startTime: startTime.trim(),
+          startTime:
+            startTime.trim(),
 
-          endTime: endTime.trim(),
+          endTime:
+            endTime.trim(),
 
           location:
-            typeof location === "string" &&
+            typeof location ===
+              "string" &&
             location.trim()
               ? location.trim()
               : null,
@@ -283,7 +425,9 @@ export async function createScheduleItem(
         },
       });
 
-    return res.status(201).json(item);
+    return res
+      .status(201)
+      .json(item);
   } catch (error) {
     console.error(
       "CREATE SCHEDULE ITEM ERROR:",
@@ -299,7 +443,10 @@ export async function createScheduleItem(
 
 // =========================
 // UPDATE SCHEDULE ITEM
-// Admin
+// Authorized staff only
+//
+// Route middleware:
+// COORDINATOR / ADMIN
 // =========================
 
 export async function updateScheduleItem(
@@ -312,35 +459,32 @@ export async function updateScheduleItem(
       req.user.role !== "admin"
     ) {
       return res.status(403).json({
-        message: "Admin access required",
+        message:
+          "Staff access required",
       });
     }
 
     // =========================
-    // Validate ID
+    // VALIDATE ID
     // =========================
 
-    const id = req.params.id;
+    const rawId =
+      req.params.id;
 
-    if (typeof id !== "string") {
+    const id =
+      Array.isArray(rawId)
+        ? rawId[0]
+        : rawId;
+
+    if (!id) {
       return res.status(400).json({
         message:
           "Invalid schedule item ID",
       });
     }
 
-    const {
-      title,
-      description,
-      date,
-      startTime,
-      endTime,
-      location,
-      batchId,
-    } = req.body;
-
     // =========================
-    // Check Existing Item
+    // CHECK EXISTING ITEM
     // =========================
 
     const existing =
@@ -357,21 +501,31 @@ export async function updateScheduleItem(
       });
     }
 
+    const {
+      title,
+      description,
+      date,
+      startTime,
+      endTime,
+      location,
+      batchId,
+    } = req.body;
+
     // =========================
-    // Validation
+    // VALIDATION
     // =========================
 
     if (
       typeof title !== "string" ||
       !title.trim() ||
       typeof date !== "string" ||
-      !date ||
+      !date.trim() ||
       typeof startTime !== "string" ||
-      !startTime ||
+      !startTime.trim() ||
       typeof endTime !== "string" ||
-      !endTime ||
+      !endTime.trim() ||
       typeof batchId !== "string" ||
-      !batchId
+      !batchId.trim()
     ) {
       return res.status(400).json({
         message:
@@ -380,11 +534,13 @@ export async function updateScheduleItem(
     }
 
     // =========================
-    // Parse Date
+    // PARSE DATE
     // =========================
 
     const parsedDate =
-      new Date(`${date}T00:00:00.000Z`);
+      new Date(
+        `${date}T00:00:00.000Z`
+      );
 
     if (
       Number.isNaN(
@@ -392,12 +548,13 @@ export async function updateScheduleItem(
       )
     ) {
       return res.status(400).json({
-        message: "Invalid date",
+        message:
+          "Invalid date",
       });
     }
 
     // =========================
-    // Check Batch
+    // CHECK BATCH
     // =========================
 
     const batch =
@@ -405,16 +562,21 @@ export async function updateScheduleItem(
         where: {
           id: batchId,
         },
+
+        select: {
+          id: true,
+        },
       });
 
     if (!batch) {
       return res.status(404).json({
-        message: "Batch not found",
+        message:
+          "Batch not found",
       });
     }
 
     // =========================
-    // Update
+    // UPDATE
     // =========================
 
     const updated =
@@ -424,22 +586,28 @@ export async function updateScheduleItem(
         },
 
         data: {
-          title: title.trim(),
+          title:
+            title.trim(),
 
           description:
-            typeof description === "string" &&
+            typeof description ===
+              "string" &&
             description.trim()
               ? description.trim()
               : null,
 
-          date: parsedDate,
+          date:
+            parsedDate,
 
-          startTime: startTime.trim(),
+          startTime:
+            startTime.trim(),
 
-          endTime: endTime.trim(),
+          endTime:
+            endTime.trim(),
 
           location:
-            typeof location === "string" &&
+            typeof location ===
+              "string" &&
             location.trim()
               ? location.trim()
               : null,
@@ -456,7 +624,9 @@ export async function updateScheduleItem(
         },
       });
 
-    return res.json(updated);
+    return res
+      .status(200)
+      .json(updated);
   } catch (error) {
     console.error(
       "UPDATE SCHEDULE ITEM ERROR:",
@@ -472,7 +642,10 @@ export async function updateScheduleItem(
 
 // =========================
 // DELETE SCHEDULE ITEM
-// Admin
+// Authorized staff only
+//
+// Route middleware:
+// COORDINATOR / ADMIN
 // =========================
 
 export async function deleteScheduleItem(
@@ -485,17 +658,24 @@ export async function deleteScheduleItem(
       req.user.role !== "admin"
     ) {
       return res.status(403).json({
-        message: "Admin access required",
+        message:
+          "Staff access required",
       });
     }
 
     // =========================
-    // Validate ID
+    // VALIDATE ID
     // =========================
 
-    const id = req.params.id;
+    const rawId =
+      req.params.id;
 
-    if (typeof id !== "string") {
+    const id =
+      Array.isArray(rawId)
+        ? rawId[0]
+        : rawId;
+
+    if (!id) {
       return res.status(400).json({
         message:
           "Invalid schedule item ID",
@@ -503,13 +683,17 @@ export async function deleteScheduleItem(
     }
 
     // =========================
-    // Check Existing Item
+    // CHECK EXISTING ITEM
     // =========================
 
     const existing =
       await prisma.scheduleItem.findUnique({
         where: {
           id,
+        },
+
+        select: {
+          id: true,
         },
       });
 
@@ -521,7 +705,7 @@ export async function deleteScheduleItem(
     }
 
     // =========================
-    // Delete
+    // DELETE
     // =========================
 
     await prisma.scheduleItem.delete({
@@ -530,9 +714,12 @@ export async function deleteScheduleItem(
       },
     });
 
-    return res.json({
-      message: "Schedule item deleted",
-    });
+    return res
+      .status(200)
+      .json({
+        message:
+          "Schedule item deleted",
+      });
   } catch (error) {
     console.error(
       "DELETE SCHEDULE ITEM ERROR:",

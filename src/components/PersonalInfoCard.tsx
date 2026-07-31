@@ -3,47 +3,20 @@ import {
   Phone,
   IdCard,
   GraduationCap,
+  MapPin,
 } from "lucide-react";
 
-interface StoredStudent {
-  id: string;
-  rollNumber: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone?: string | null;
+import type {
+  StudentProfile,
+} from "../pages/student/Profile";
 
-  batch?: {
-    id: string;
-    name: string;
-  };
+interface Props {
+  student: StudentProfile;
 }
 
-export default function PersonalInformationCard() {
-  let student: StoredStudent | null = null;
-
-  try {
-    const stored =
-      localStorage.getItem("student");
-
-    if (stored) {
-      student = JSON.parse(stored);
-    }
-  } catch (error) {
-    console.error(
-      "LOAD PERSONAL INFORMATION ERROR:",
-      error
-    );
-  }
-
-  if (!student) {
-    return (
-      <section className="mx-5 bg-white rounded-xl shadow-sm p-6 text-center text-slate-500">
-        Personal information unavailable.
-      </section>
-    );
-  }
-
+export default function PersonalInformationCard({
+  student,
+}: Props) {
   return (
     <section className="mx-5 bg-white rounded-xl shadow-sm p-4">
 
@@ -80,6 +53,7 @@ export default function PersonalInformationCard() {
           />
 
           <div className="min-w-0">
+
             <p className="text-xs text-slate-500">
               Email
             </p>
@@ -87,6 +61,7 @@ export default function PersonalInformationCard() {
             <p className="font-medium break-all">
               {student.email}
             </p>
+
           </div>
 
         </div>
@@ -99,6 +74,7 @@ export default function PersonalInformationCard() {
           />
 
           <div>
+
             <p className="text-xs text-slate-500">
               Phone
             </p>
@@ -107,6 +83,7 @@ export default function PersonalInformationCard() {
               {student.phone ??
                 "Not provided"}
             </p>
+
           </div>
 
         </div>
@@ -119,6 +96,7 @@ export default function PersonalInformationCard() {
           />
 
           <div>
+
             <p className="text-xs text-slate-500">
               Batch
             </p>
@@ -127,6 +105,40 @@ export default function PersonalInformationCard() {
               {student.batch?.name ??
                 "Not assigned"}
             </p>
+
+          </div>
+
+        </div>
+
+        <div className="flex items-center gap-3">
+
+          <MapPin
+            size={18}
+            className="text-emerald-600"
+          />
+
+          <div>
+
+            <p className="text-xs text-slate-500">
+              Venue
+            </p>
+
+            <p className="font-medium">
+              {student.batch?.venue
+                ?.name ??
+                "Not assigned"}
+            </p>
+
+            {student.batch?.venue
+              ?.address && (
+              <p className="text-sm text-slate-500">
+                {
+                  student.batch
+                    .venue.address
+                }
+              </p>
+            )}
+
           </div>
 
         </div>

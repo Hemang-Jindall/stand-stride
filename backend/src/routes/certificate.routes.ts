@@ -8,27 +8,65 @@ import {
 
 import {
   authenticate,
+  requireStudent,
+  requireAdminRole,
 } from "../middleware/auth.middleware.js";
 
 const router = Router();
 
-// Student
+// =========================
+// STUDENT — OWN CERTIFICATES
+// =========================
+
 router.get(
   "/me",
   authenticate,
+  requireStudent,
   getMyCertificates
 );
 
-// Admin
+// =========================
+// STAFF — VIEW CERTIFICATES
+// =========================
+
+// FACILITATOR
+// COORDINATOR
+// MENTOR
+// ADMIN
+//
+// Mentor can view certificates,
+// but cannot issue them.
+
 router.get(
   "/",
   authenticate,
+  requireAdminRole(
+    "FACILITATOR",
+    "COORDINATOR",
+    "MENTOR",
+    "ADMIN"
+  ),
   getCertificates
 );
+
+// =========================
+// STAFF — ISSUE CERTIFICATE
+// =========================
+
+// COORDINATOR
+// ADMIN
+//
+// FACILITATOR and MENTOR
+// can view certificates,
+// but cannot issue them.
 
 router.post(
   "/",
   authenticate,
+  requireAdminRole(
+    "COORDINATOR",
+    "ADMIN"
+  ),
   createCertificate
 );
 

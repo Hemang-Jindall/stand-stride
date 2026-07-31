@@ -9,33 +9,75 @@ import {
 
 import {
   authenticate,
+  requireStudent,
+  requireAdminRole,
 } from "../middleware/auth.middleware.js";
 
 const router = Router();
 
-// Student
+// =========================
+// STUDENT — OWN GRIEVANCES
+// =========================
+
 router.get(
   "/me",
   authenticate,
+  requireStudent,
   getMyGrievances
 );
+
+// =========================
+// STUDENT — CREATE GRIEVANCE
+// =========================
 
 router.post(
   "/",
   authenticate,
+  requireStudent,
   createGrievance
 );
 
-// Admin
+// =========================
+// STAFF — VIEW GRIEVANCES
+// =========================
+
+// FACILITATOR
+// COORDINATOR
+// ADMIN
+//
+// MENTOR has no access to
+// student grievances.
+
 router.get(
   "/",
   authenticate,
+  requireAdminRole(
+    "FACILITATOR",
+    "COORDINATOR",
+    "ADMIN"
+  ),
   getGrievances
 );
+
+// =========================
+// STAFF — UPDATE STATUS
+// =========================
+
+// COORDINATOR
+// ADMIN
+//
+// FACILITATOR can view grievances
+// but cannot change their status.
+//
+// MENTOR has no grievance access.
 
 router.patch(
   "/:id/status",
   authenticate,
+  requireAdminRole(
+    "COORDINATOR",
+    "ADMIN"
+  ),
   updateGrievanceStatus
 );
 

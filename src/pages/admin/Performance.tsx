@@ -16,6 +16,10 @@ import AdminBottomNavigation from "../../components/AdminBottomNavigation";
 import api from "../../api/api";
 
 import {
+  hasPermission,
+} from "../../utils/permissions";
+
+import {
   User,
   CircleCheck,
   BadgeCheck,
@@ -25,6 +29,10 @@ import {
   CalendarDays,
   TrendingUp,
 } from "lucide-react";
+
+// =========================
+// Types
+// =========================
 
 interface PerformanceData {
   student: {
@@ -83,6 +91,10 @@ interface PerformanceData {
   };
 }
 
+// =========================
+// Component
+// =========================
+
 export default function Performance() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -123,7 +135,50 @@ export default function Performance() {
     useState("");
 
   // =========================
-  // LOAD PERFORMANCE
+  // Permissions
+  // =========================
+
+  const canManagePerformance =
+    hasPermission(
+      "MANAGE_PERFORMANCE"
+    );
+
+  // =========================
+  // Clear Session
+  // =========================
+
+  const clearSession =
+    useCallback(() => {
+      localStorage.removeItem(
+        "token"
+      );
+
+      localStorage.removeItem(
+        "admin"
+      );
+
+      localStorage.removeItem(
+        "student"
+      );
+
+      localStorage.removeItem(
+        "role"
+      );
+
+      localStorage.removeItem(
+        "adminRole"
+      );
+
+      navigate(
+        "/login",
+        {
+          replace: true,
+        }
+      );
+    }, [navigate]);
+
+  // =========================
+  // Load Performance
   // =========================
 
   const loadPerformance =
@@ -134,6 +189,7 @@ export default function Performance() {
         );
 
         setLoading(false);
+
         return;
       }
 
@@ -142,10 +198,21 @@ export default function Performance() {
         setError("");
 
         const token =
-          localStorage.getItem("token");
+          localStorage.getItem(
+            "token"
+          );
 
-        if (!token) {
-          navigate("/login");
+        const role =
+          localStorage.getItem(
+            "role"
+          );
+
+        if (
+          !token ||
+          role !== "admin"
+        ) {
+          clearSession();
+
           return;
         }
 
@@ -163,20 +230,25 @@ export default function Performance() {
         const performanceData =
           response.data;
 
-        setData(performanceData);
+        setData(
+          performanceData
+        );
 
         setOverallProgress(
-          performanceData.performance
+          performanceData
+            .performance
             .overallProgress
         );
 
         setRemarks(
-          performanceData.performance
-            .remarks
+          performanceData
+            .performance
+            .remarks ?? ""
         );
 
         setCertificateEligible(
-          performanceData.performance
+          performanceData
+            .performance
             .certificateEligible
         );
       } catch (error: any) {
@@ -185,25 +257,41 @@ export default function Performance() {
           error
         );
 
+        if (
+          error.response
+            ?.status === 401
+        ) {
+          clearSession();
+
+          return;
+        }
+
         setError(
-          error.response?.data?.message ??
+          error.response?.data
+            ?.message ??
             "Failed to load performance."
         );
       } finally {
         setLoading(false);
       }
-    }, [studentId, navigate]);
+    }, [
+      studentId,
+      clearSession,
+    ]);
 
   useEffect(() => {
     loadPerformance();
   }, [loadPerformance]);
 
   // =========================
-  // SAVE PERFORMANCE
+  // Save Performance
   // =========================
 
   async function handleSave() {
-    if (!studentId) {
+    if (
+      !studentId ||
+      !canManagePerformance
+    ) {
       return;
     }
 
@@ -213,10 +301,21 @@ export default function Performance() {
       setError("");
 
       const token =
-        localStorage.getItem("token");
+        localStorage.getItem(
+          "token"
+        );
 
-      if (!token) {
-        navigate("/login");
+      const role =
+        localStorage.getItem(
+          "role"
+        );
+
+      if (
+        !token ||
+        role !== "admin"
+      ) {
+        clearSession();
+
         return;
       }
 
@@ -235,27 +334,30 @@ export default function Performance() {
         }
       );
 
-      setData((current) => {
-        if (!current) {
-          return current;
-        }
+      setData(
+        (current) => {
+          if (!current) {
+            return current;
+          }
 
-        return {
-          ...current,
+          return {
+            ...current,
 
-          certificate: {
-            ...current.certificate,
-            eligible:
+            certificate: {
+              ...current.certificate,
+
+              eligible:
+                certificateEligible,
+            },
+
+            performance: {
+              overallProgress,
+              remarks,
               certificateEligible,
-          },
-
-          performance: {
-            overallProgress,
-            remarks,
-            certificateEligible,
-          },
-        };
-      });
+            },
+          };
+        }
+      );
 
       setSaved(true);
 
@@ -268,8 +370,18 @@ export default function Performance() {
         error
       );
 
+      if (
+        error.response
+          ?.status === 401
+      ) {
+        clearSession();
+
+        return;
+      }
+
       setError(
-        error.response?.data?.message ??
+        error.response?.data
+          ?.message ??
           "Failed to save performance."
       );
     } finally {
@@ -278,19 +390,28 @@ export default function Performance() {
   }
 
   // =========================
-  // PROGRESS CHANGE
+  // Progress Change
   // =========================
 
   function handleProgressChange(
     value: string
   ) {
+    if (
+      !canManagePerformance
+    ) {
+      return;
+    }
+
     const parsedValue =
       Number(value);
 
     if (
-      Number.isNaN(parsedValue)
+      Number.isNaN(
+        parsedValue
+      )
     ) {
       setOverallProgress(0);
+
       return;
     }
 
@@ -299,7 +420,9 @@ export default function Performance() {
         100,
         Math.max(
           0,
-          Math.round(parsedValue)
+          Math.round(
+            parsedValue
+          )
         )
       )
     );
@@ -308,40 +431,67 @@ export default function Performance() {
   }
 
   // =========================
-  // LOADING
+  // Certificate Eligibility
+  // =========================
+
+  function toggleCertificateEligibility() {
+    if (
+      !canManagePerformance
+    ) {
+      return;
+    }
+
+    setCertificateEligible(
+      (current) =>
+        !current
+    );
+
+    setSaved(false);
+  }
+
+  // =========================
+  // Loading
   // =========================
 
   if (loading) {
     return (
       <MobileLayout>
+
         <Header />
 
         <main className="flex-1 py-4">
+
           <div className="mx-5 bg-white rounded-xl shadow-sm p-8 text-center text-slate-500">
             Loading performance...
           </div>
+
         </main>
 
         <AdminBottomNavigation />
+
       </MobileLayout>
     );
   }
 
   // =========================
-  // ERROR / NO STUDENT
+  // Error / No Student
   // =========================
 
   if (!data) {
     return (
       <MobileLayout>
+
         <Header />
 
         <main className="flex-1 py-4">
+
           <div className="mx-5 bg-white rounded-xl shadow-sm p-5">
 
             <p className="text-red-600">
+
               {error ||
                 "Unable to load student."}
+
             </p>
 
             <button
@@ -357,18 +507,29 @@ export default function Performance() {
             </button>
 
           </div>
+
         </main>
 
         <AdminBottomNavigation />
+
       </MobileLayout>
     );
   }
 
+  // =========================
+  // Student
+  // =========================
+
   const fullName =
     `${data.student.firstName} ${data.student.lastName}`;
 
+  // =========================
+  // UI
+  // =========================
+
   return (
     <MobileLayout>
+
       <Header />
 
       <main className="flex-1 py-4 overflow-y-auto">
@@ -387,16 +548,29 @@ export default function Performance() {
             />
 
             <div>
+
               <h2 className="text-xl font-bold">
                 {fullName}
               </h2>
 
               <p className="text-slate-500">
-                {data.student.rollNumber}
+
+                {
+                  data.student
+                    .rollNumber
+                }
+
                 {" • "}
+
                 Batch{" "}
-                {data.student.batch.name}
+
+                {
+                  data.student
+                    .batch.name
+                }
+
               </p>
+
             </div>
 
           </div>
@@ -444,18 +618,25 @@ export default function Performance() {
 
             </div>
 
+            {/* Editable only with permission */}
+
             <input
               type="range"
               min="0"
               max="100"
               step="1"
-              value={overallProgress}
+              value={
+                overallProgress
+              }
+              disabled={
+                !canManagePerformance
+              }
               onChange={(e) =>
                 handleProgressChange(
                   e.target.value
                 )
               }
-              className="w-full mt-4"
+              className="w-full mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
             />
 
             <div className="flex items-center gap-3 mt-3">
@@ -464,18 +645,26 @@ export default function Performance() {
                 type="number"
                 min="0"
                 max="100"
-                value={overallProgress}
+                value={
+                  overallProgress
+                }
+                disabled={
+                  !canManagePerformance
+                }
                 onChange={(e) =>
                   handleProgressChange(
                     e.target.value
                   )
                 }
-                className="w-24 border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-emerald-500"
+                className="w-24 border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-emerald-500 disabled:bg-slate-100 disabled:text-slate-500"
               />
 
               <span className="text-sm text-slate-500">
-                Enter progress from
-                0–100%
+
+                {canManagePerformance
+                  ? "Enter progress from 0–100%"
+                  : "Overall internship progress"}
+
               </span>
 
             </div>
@@ -495,11 +684,13 @@ export default function Performance() {
               </span>
 
               <span className="font-semibold">
+
                 {
                   data.attendance
                     .percentage
                 }
                 %
+
               </span>
 
             </div>
@@ -545,16 +736,25 @@ export default function Performance() {
               </div>
 
               <p className="text-2xl font-bold">
+
                 {
                   data.attendance
                     .present
                 }
+
               </p>
 
               <p className="text-xs text-slate-500">
+
                 of{" "}
-                {data.attendance.total}{" "}
+
+                {
+                  data.attendance
+                    .total
+                }{" "}
+
                 records
+
               </p>
 
             </div>
@@ -577,18 +777,23 @@ export default function Performance() {
               </div>
 
               <p className="text-2xl font-bold">
+
                 {
                   data.attendance
                     .leave
                 }
+
               </p>
 
               <p className="text-xs text-slate-500">
+
                 {
                   data.attendance
                     .absent
                 }{" "}
+
                 absent
+
               </p>
 
             </div>
@@ -611,9 +816,11 @@ export default function Performance() {
               </div>
 
               <p className="font-semibold">
-                {data.student.mentor
-                  ?.name ??
+
+                {data.student
+                  .mentor?.name ??
                   "Not assigned"}
+
               </p>
 
             </div>
@@ -637,17 +844,23 @@ export default function Performance() {
 
               {data.certificate
                 .issued ? (
+
                 <p className="font-semibold text-emerald-600">
                   Issued
                 </p>
+
               ) : certificateEligible ? (
+
                 <p className="font-semibold text-emerald-600">
                   Eligible
                 </p>
+
               ) : (
+
                 <p className="font-semibold text-amber-600">
                   Not Eligible
                 </p>
+
               )}
 
             </div>
@@ -667,21 +880,22 @@ export default function Performance() {
           </h3>
 
           <p className="text-sm text-slate-500 mt-1 mb-4">
-            Mark whether this student
-            has completed the requirements
-            for a certificate.
+
+            {canManagePerformance
+              ? "Mark whether this student has completed the requirements for a certificate."
+              : "Certificate eligibility for this student."}
+
           </p>
 
           <button
             type="button"
-            onClick={() => {
-              setCertificateEligible(
-                (current) => !current
-              );
-
-              setSaved(false);
-            }}
-            className="w-full flex items-center justify-between bg-slate-50 rounded-xl p-4"
+            disabled={
+              !canManagePerformance
+            }
+            onClick={
+              toggleCertificateEligibility
+            }
+            className="w-full flex items-center justify-between bg-slate-50 rounded-xl p-4 disabled:cursor-default"
           >
 
             <div className="flex items-center gap-3">
@@ -735,7 +949,16 @@ export default function Performance() {
 
           <textarea
             value={remarks}
+            disabled={
+              !canManagePerformance
+            }
             onChange={(e) => {
+              if (
+                !canManagePerformance
+              ) {
+                return;
+              }
+
               setRemarks(
                 e.target.value
               );
@@ -743,7 +966,7 @@ export default function Performance() {
               setSaved(false);
             }}
             rows={6}
-            className="w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-emerald-500 resize-none"
+            className="w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-emerald-500 resize-none disabled:bg-slate-50 disabled:text-slate-600 disabled:cursor-default"
             placeholder="Enter mentor remarks..."
           />
 
@@ -751,20 +974,28 @@ export default function Performance() {
               SAVE
           ========================= */}
 
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={saving}
-            className="mt-4 w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-400 text-white rounded-xl py-3 flex justify-center items-center gap-2 transition"
-          >
+          {canManagePerformance && (
 
-            <Save size={18} />
+            <button
+              type="button"
+              onClick={
+                handleSave
+              }
+              disabled={saving}
+              className="mt-4 w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-400 text-white rounded-xl py-3 flex justify-center items-center gap-2 transition"
+            >
 
-            {saving
-              ? "Saving..."
-              : "Save Performance"}
+              <Save
+                size={18}
+              />
 
-          </button>
+              {saving
+                ? "Saving..."
+                : "Save Performance"}
+
+            </button>
+
+          )}
 
           {saved && (
             <div className="mt-4 flex items-center justify-center gap-2 text-emerald-600 font-medium">
@@ -789,6 +1020,7 @@ export default function Performance() {
       </main>
 
       <AdminBottomNavigation />
+
     </MobileLayout>
   );
 }

@@ -3,23 +3,131 @@ import { Router } from "express";
 import {
   getStudents,
   getStudent,
+  getMyProfile,
   createStudent,
   updateStudent,
   deleteStudent,
 } from "../controllers/student.controller.js";
 
-import { authenticate } from "../middleware/auth.middleware.js";
+import {
+  authenticate,
+  requireStudent,
+  requireAdminRole,
+} from "../middleware/auth.middleware.js";
 
 const router = Router();
 
-router.get("/", authenticate, getStudents);
+// =========================
+// STUDENT — OWN PROFILE
+// =========================
 
-router.get("/:id", authenticate, getStudent);
+// IMPORTANT:
+// /me must stay before /:id
+//
+// Student can only access
+// their own profile.
 
-router.post("/", authenticate, createStudent);
+router.get(
+  "/me",
+  authenticate,
+  requireStudent,
+  getMyProfile
+);
 
-router.put("/:id", authenticate, updateStudent);
+// =========================
+// STAFF — VIEW STUDENTS
+// =========================
 
-router.delete("/:id", authenticate, deleteStudent);
+// FACILITATOR
+// COORDINATOR
+// MENTOR
+// ADMIN
+//
+// Mentor can view students.
+// We will later restrict Mentor
+// results to assigned students only.
+
+router.get(
+  "/",
+  authenticate,
+  requireAdminRole(
+    "FACILITATOR",
+    "COORDINATOR",
+    "MENTOR",
+    "ADMIN"
+  ),
+  getStudents
+);
+
+router.get(
+  "/:id",
+  authenticate,
+  requireAdminRole(
+    "FACILITATOR",
+    "COORDINATOR",
+    "MENTOR",
+    "ADMIN"
+  ),
+  getStudent
+);
+
+// =========================
+// STAFF — CREATE STUDENT
+// =========================
+
+// FACILITATOR
+// COORDINATOR
+// ADMIN
+//
+// MENTOR cannot create students.
+
+router.post(
+  "/",
+  authenticate,
+  requireAdminRole(
+    "FACILITATOR",
+    "COORDINATOR",
+    "ADMIN"
+  ),
+  createStudent
+);
+
+// =========================
+// STAFF — UPDATE STUDENT
+// =========================
+
+// FACILITATOR
+// COORDINATOR
+// ADMIN
+//
+// MENTOR cannot edit student
+// account/profile information.
+
+router.put(
+  "/:id",
+  authenticate,
+  requireAdminRole(
+    "FACILITATOR",
+    "COORDINATOR",
+    "ADMIN"
+  ),
+  updateStudent
+);
+
+// =========================
+// ADMIN — DELETE STUDENT
+// =========================
+
+// Only ADMIN can permanently
+// delete a student.
+
+router.delete(
+  "/:id",
+  authenticate,
+  requireAdminRole(
+    "ADMIN"
+  ),
+  deleteStudent
+);
 
 export default router;

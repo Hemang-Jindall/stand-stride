@@ -22,10 +22,15 @@ export default function AddStudent() {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
   const [batchId, setBatchId] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // =========================
+  // LOAD BATCHES
+  // =========================
 
   useEffect(() => {
     async function loadBatches() {
@@ -50,12 +55,17 @@ export default function AddStudent() {
         }
       } catch (error) {
         console.error("LOAD BATCHES ERROR:", error);
+
         setError("Failed to load batches.");
       }
     }
 
     loadBatches();
   }, [navigate]);
+
+  // =========================
+  // CREATE STUDENT
+  // =========================
 
   async function handleSubmit(
     e: React.FormEvent<HTMLFormElement>
@@ -76,11 +86,12 @@ export default function AddStudent() {
       await api.post(
         "/students",
         {
-          rollNumber,
-          firstName,
-          lastName,
-          email,
-          phone,
+          rollNumber: rollNumber.trim(),
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          email: email.trim(),
+          phone: phone.trim(),
+          password,
           batchId,
         },
         {
@@ -117,6 +128,8 @@ export default function AddStudent() {
             onSubmit={handleSubmit}
             className="bg-white rounded-xl shadow-sm p-5 space-y-4"
           >
+            {/* Roll Number */}
+
             <input
               type="text"
               placeholder="Roll Number"
@@ -127,6 +140,8 @@ export default function AddStudent() {
               required
               className="w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-emerald-500"
             />
+
+            {/* First Name */}
 
             <input
               type="text"
@@ -139,6 +154,8 @@ export default function AddStudent() {
               className="w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-emerald-500"
             />
 
+            {/* Last Name */}
+
             <input
               type="text"
               placeholder="Last Name"
@@ -149,6 +166,8 @@ export default function AddStudent() {
               required
               className="w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-emerald-500"
             />
+
+            {/* Email */}
 
             <input
               type="email"
@@ -161,6 +180,8 @@ export default function AddStudent() {
               className="w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-emerald-500"
             />
 
+            {/* Phone */}
+
             <input
               type="tel"
               placeholder="Phone"
@@ -170,6 +191,23 @@ export default function AddStudent() {
               }
               className="w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-emerald-500"
             />
+
+            {/* Password */}
+
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) =>
+                setPassword(e.target.value)
+              }
+              required
+              minLength={6}
+              autoComplete="new-password"
+              className="w-full rounded-xl border border-slate-200 p-3 outline-none focus:border-emerald-500"
+            />
+
+            {/* Batch */}
 
             <select
               value={batchId}
@@ -195,15 +233,23 @@ export default function AddStudent() {
               )}
             </select>
 
+            {/* Error */}
+
             {error && (
               <p className="text-sm text-red-500">
                 {error}
               </p>
             )}
 
+            {/* Submit */}
+
             <button
               type="submit"
-              disabled={loading || !batchId}
+              disabled={
+                loading ||
+                !batchId ||
+                password.length < 6
+              }
               className="w-full bg-emerald-600 text-white rounded-xl py-3 font-semibold disabled:opacity-50"
             >
               {loading

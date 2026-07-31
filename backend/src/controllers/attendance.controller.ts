@@ -1,7 +1,4 @@
-import type {
-  Request,
-  Response,
-} from "express";
+import type { Response } from "express";
 
 import prisma from "../lib/prisma.js";
 
@@ -10,8 +7,32 @@ import type {
 } from "../middleware/auth.middleware.js";
 
 // =======================
-// GET all attendance
-// ADMIN ONLY
+// HELPER — GET MENTOR
+// =======================
+
+async function getLoggedInMentor(
+  adminId: string
+) {
+  return prisma.mentor.findUnique({
+    where: {
+      adminId,
+    },
+
+    select: {
+      id: true,
+    },
+  });
+}
+
+// =======================
+// GET ALL ATTENDANCE
+// Staff only
+//
+// Mentor:
+// Assigned students only
+//
+// Other authorized staff:
+// All students
 // =======================
 
 export async function getAttendance(
@@ -19,11 +40,63 @@ export async function getAttendance(
   res: Response
 ) {
   try {
-    if (req.user?.role !== "admin") {
+    if (
+      !req.user ||
+      req.user.role !== "admin"
+    ) {
       return res.status(403).json({
-        message: "Admin access required",
+        message: "Staff access required",
       });
     }
+
+    // =======================
+    // MENTOR
+    // =======================
+
+    if (
+      req.user.adminRole === "MENTOR"
+    ) {
+      const mentor =
+        await getLoggedInMentor(
+          req.user.id
+        );
+
+      if (!mentor) {
+        return res.status(403).json({
+          message:
+            "Mentor profile not found",
+        });
+      }
+
+      const attendance =
+        await prisma.attendance.findMany({
+          where: {
+            student: {
+              mentorId: mentor.id,
+            },
+          },
+
+          include: {
+            student: {
+              include: {
+                batch: true,
+              },
+            },
+          },
+
+          orderBy: {
+            date: "desc",
+          },
+        });
+
+      return res
+        .status(200)
+        .json(attendance);
+    }
+
+    // =======================
+    // OTHER STAFF
+    // =======================
 
     const attendance =
       await prisma.attendance.findMany({
@@ -43,7 +116,6 @@ export async function getAttendance(
     return res
       .status(200)
       .json(attendance);
-
   } catch (error) {
     console.error(
       "GET ATTENDANCE ERROR:",
@@ -58,8 +130,8 @@ export async function getAttendance(
 }
 
 // =======================
-// GET logged-in student's
-// attendance
+// GET MY ATTENDANCE
+// Student only
 // =======================
 
 export async function getMyAttendance(
@@ -91,7 +163,6 @@ export async function getMyAttendance(
     return res
       .status(200)
       .json(attendance);
-
   } catch (error) {
     console.error(
       "GET MY ATTENDANCE ERROR:",
@@ -106,8 +177,11 @@ export async function getMyAttendance(
 }
 
 // =======================
-// CREATE / UPDATE
-// ADMIN ONLY
+// CREATE / UPDATE ATTENDANCE
+// Authorized staff only
+//
+// Mentor:
+// Assigned students only
 // =======================
 
 export async function markAttendance(
@@ -115,9 +189,13 @@ export async function markAttendance(
   res: Response
 ) {
   try {
-    if (req.user?.role !== "admin") {
+    if (
+      !req.user ||
+      req.user.role !== "admin"
+    ) {
       return res.status(403).json({
-        message: "Admin access required",
+        message:
+          "Staff access required",
       });
     }
 
@@ -127,10 +205,17 @@ export async function markAttendance(
       status,
     } = req.body;
 
+    // =======================
+    // VALIDATE FIELDS
+    // =======================
+
     if (
-      !studentId ||
-      !date ||
-      !status
+      typeof studentId !== "string" ||
+      !studentId.trim() ||
+      typeof date !== "string" ||
+      !date.trim() ||
+      typeof status !== "string" ||
+      !status.trim()
     ) {
       return res.status(400).json({
         message:
@@ -138,12 +223,14 @@ export async function markAttendance(
       });
     }
 
+    // =======================
+    // VALIDATE STATUS
+    // =======================
+
     if (
-      ![
-        "PRESENT",
-        "ABSENT",
-        "LEAVE",
-      ].includes(status)
+      status !== "PRESENT" &&
+      status !== "ABSENT" &&
+      status !== "LEAVE"
     ) {
       return res.status(400).json({
         message:
@@ -151,10 +238,19 @@ export async function markAttendance(
       });
     }
 
+    // =======================
+    // GET STUDENT
+    // =======================
+
     const student =
       await prisma.student.findUnique({
         where: {
           id: studentId,
+        },
+
+        select: {
+          id: true,
+          mentorId: true,
         },
       });
 
@@ -164,6 +260,39 @@ export async function markAttendance(
           "Student not found",
       });
     }
+
+    // =======================
+    // MENTOR OWNERSHIP CHECK
+    // =======================
+
+    if (
+      req.user.adminRole === "MENTOR"
+    ) {
+      const mentor =
+        await getLoggedInMentor(
+          req.user.id
+        );
+
+      if (!mentor) {
+        return res.status(403).json({
+          message:
+            "Mentor profile not found",
+        });
+      }
+
+      if (
+        student.mentorId !== mentor.id
+      ) {
+        return res.status(403).json({
+          message:
+            "You can only mark attendance for students assigned to you",
+        });
+      }
+    }
+
+    // =======================
+    // CONVERT DATE
+    // =======================
 
     const attendanceDate =
       new Date(
@@ -176,9 +305,14 @@ export async function markAttendance(
       )
     ) {
       return res.status(400).json({
-        message: "Invalid date",
+        message:
+          "Invalid date",
       });
     }
+
+    // =======================
+    // CREATE / UPDATE
+    // =======================
 
     const attendance =
       await prisma.attendance.upsert({
@@ -211,7 +345,6 @@ export async function markAttendance(
     return res
       .status(200)
       .json(attendance);
-
   } catch (error) {
     console.error(
       "MARK ATTENDANCE ERROR:",

@@ -1,4 +1,5 @@
 import { useState } from "react";
+
 import {
   useLocation,
   useNavigate,
@@ -9,6 +10,10 @@ import Header from "../../components/Header";
 import AdminBottomNavigation from "../../components/AdminBottomNavigation";
 
 import api from "../../api/api";
+
+import {
+  hasPermission,
+} from "../../utils/permissions";
 
 import {
   User,
@@ -55,30 +60,81 @@ export default function StudentDetails() {
     useState("");
 
   // =========================
+  // PERMISSIONS
+  // =========================
+
+  const canEditStudent =
+    hasPermission(
+      "EDIT_STUDENTS"
+    );
+
+  const canDeleteStudent =
+    hasPermission(
+      "DELETE_STUDENTS"
+    );
+
+  const canViewAttendance =
+    hasPermission(
+      "VIEW_ATTENDANCE"
+    );
+
+  const canViewCertificates =
+    hasPermission(
+      "VIEW_CERTIFICATES"
+    );
+
+  const canViewLeave =
+    hasPermission(
+      "VIEW_LEAVE"
+    );
+
+  const canViewGrievances =
+    hasPermission(
+      "VIEW_GRIEVANCES"
+    );
+
+  const canViewPerformance =
+    hasPermission(
+      "VIEW_PERFORMANCE"
+    );
+
+  // =========================
   // DELETE STUDENT
   // =========================
 
   async function handleDelete() {
-    if (!student) return;
+    if (
+      !student ||
+      !canDeleteStudent
+    ) {
+      return;
+    }
 
     const confirmed =
       window.confirm(
         `Delete ${student.firstName} ${student.lastName}?`
       );
 
-    if (!confirmed) return;
+    if (!confirmed) {
+      return;
+    }
 
     try {
       setDeleting(true);
       setError("");
 
       const token =
-        localStorage.getItem("token");
+        localStorage.getItem(
+          "token"
+        );
 
       if (!token) {
-        navigate("/login", {
-          replace: true,
-        });
+        navigate(
+          "/login",
+          {
+            replace: true,
+          }
+        );
 
         return;
       }
@@ -106,7 +162,8 @@ export default function StudentDetails() {
       );
 
       setError(
-        error.response?.data?.message ??
+        error.response?.data
+          ?.message ??
           "Failed to delete student."
       );
     } finally {
@@ -119,69 +176,99 @@ export default function StudentDetails() {
   // =========================
 
   function openAttendance() {
-    if (!student) return;
+    if (
+      !student ||
+      !canViewAttendance
+    ) {
+      return;
+    }
 
     navigate(
       "/admin/attendance",
       {
         state: {
           student,
-          studentId: student.id,
+          studentId:
+            student.id,
         },
       }
     );
   }
 
   function openCertificates() {
-    if (!student) return;
+    if (
+      !student ||
+      !canViewCertificates
+    ) {
+      return;
+    }
 
     navigate(
       "/admin/certificates",
       {
         state: {
           student,
-          studentId: student.id,
+          studentId:
+            student.id,
         },
       }
     );
   }
 
   function openLeaveRequests() {
-    if (!student) return;
+    if (
+      !student ||
+      !canViewLeave
+    ) {
+      return;
+    }
 
     navigate(
       "/admin/leave-requests",
       {
         state: {
           student,
-          studentId: student.id,
+          studentId:
+            student.id,
         },
       }
     );
   }
 
   function openGrievances() {
-    if (!student) return;
+    if (
+      !student ||
+      !canViewGrievances
+    ) {
+      return;
+    }
 
     navigate(
       "/admin/grievances",
       {
         state: {
           student,
-          studentId: student.id,
+          studentId:
+            student.id,
         },
       }
     );
   }
 
   function openPerformance() {
-    if (!student) return;
+    if (
+      !student ||
+      !canViewPerformance
+    ) {
+      return;
+    }
 
     navigate(
       "/admin/performance",
       {
         state: {
-          studentId: student.id,
+          studentId:
+            student.id,
         },
       }
     );
@@ -194,6 +281,7 @@ export default function StudentDetails() {
   if (!student) {
     return (
       <MobileLayout>
+
         <Header />
 
         <main className="flex-1 py-4 overflow-y-auto">
@@ -231,6 +319,7 @@ export default function StudentDetails() {
         </main>
 
         <AdminBottomNavigation />
+
       </MobileLayout>
     );
   }
@@ -241,11 +330,14 @@ export default function StudentDetails() {
 
   return (
     <MobileLayout>
+
       <Header />
 
       <main className="flex-1 py-4 overflow-y-auto">
 
-        {/* Student Information */}
+        {/* =========================
+            Student Information
+        ========================= */}
 
         <section className="mx-5 bg-white rounded-xl shadow-sm p-5">
 
@@ -288,7 +380,7 @@ export default function StudentDetails() {
 
             </div>
 
-            {/* Roll Number */}
+            {/* Student ID */}
 
             <div className="flex justify-between gap-4">
 
@@ -307,8 +399,11 @@ export default function StudentDetails() {
             <div className="flex justify-between gap-4">
 
               <span className="text-slate-500 flex items-center gap-1">
+
                 <Mail size={15} />
+
                 Email
+
               </span>
 
               <span className="text-right text-sm break-all">
@@ -322,8 +417,11 @@ export default function StudentDetails() {
             <div className="flex justify-between gap-4">
 
               <span className="text-slate-500 flex items-center gap-1">
+
                 <Phone size={15} />
+
                 Phone
+
               </span>
 
               <span className="text-right">
@@ -335,42 +433,70 @@ export default function StudentDetails() {
 
           </div>
 
-          {/* Edit / Delete */}
+          {/* =========================
+              Edit / Delete
+          ========================= */}
 
-          <div className="grid grid-cols-2 gap-3 mt-6">
+          {(canEditStudent ||
+            canDeleteStudent) && (
 
-            <button
-              type="button"
-              onClick={() =>
-                navigate(
-                  "/admin/students/edit",
-                  {
-                    state: {
-                      student,
-                    },
+            <div
+              className={`grid gap-3 mt-6 ${
+                canEditStudent &&
+                canDeleteStudent
+                  ? "grid-cols-2"
+                  : "grid-cols-1"
+              }`}
+            >
+
+              {/* Edit */}
+
+              {canEditStudent && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate(
+                      "/admin/students/edit",
+                      {
+                        state: {
+                          student,
+                        },
+                      }
+                    )
                   }
-                )
-              }
-              className="rounded-xl bg-emerald-600 text-white py-3 flex items-center justify-center gap-2 font-semibold"
-            >
-              <Pencil size={17} />
-              Edit
-            </button>
+                  className="rounded-xl bg-emerald-600 text-white py-3 flex items-center justify-center gap-2 font-semibold"
+                >
 
-            <button
-              type="button"
-              onClick={handleDelete}
-              disabled={deleting}
-              className="rounded-xl border border-red-200 text-red-600 py-3 flex items-center justify-center gap-2 font-semibold disabled:opacity-50"
-            >
-              <Trash2 size={17} />
+                  <Pencil size={17} />
 
-              {deleting
-                ? "Deleting..."
-                : "Delete"}
-            </button>
+                  Edit
 
-          </div>
+                </button>
+              )}
+
+              {/* Delete */}
+
+              {canDeleteStudent && (
+                <button
+                  type="button"
+                  onClick={
+                    handleDelete
+                  }
+                  disabled={deleting}
+                  className="rounded-xl border border-red-200 text-red-600 py-3 flex items-center justify-center gap-2 font-semibold disabled:opacity-50"
+                >
+
+                  <Trash2 size={17} />
+
+                  {deleting
+                    ? "Deleting..."
+                    : "Delete"}
+
+                </button>
+              )}
+
+            </div>
+          )}
 
           {error && (
             <p className="text-red-500 text-sm mt-3">
@@ -380,120 +506,180 @@ export default function StudentDetails() {
 
         </section>
 
-        {/* Student Management */}
+        {/* =========================
+            Student Management
+        ========================= */}
 
-        <section className="mx-5 mt-4 bg-white rounded-xl shadow-sm">
+        {(canViewAttendance ||
+          canViewCertificates ||
+          canViewLeave ||
+          canViewGrievances ||
+          canViewPerformance) && (
 
-          <button
-            type="button"
-            onClick={openAttendance}
-            className="w-full flex justify-between items-center px-5 py-4 border-b hover:bg-slate-50 transition"
-          >
-            <div className="flex items-center gap-3">
-              <ClipboardCheck
-                size={18}
-              />
+          <section className="mx-5 mt-4 bg-white rounded-xl shadow-sm">
 
-              <span>
-                Attendance
-              </span>
-            </div>
+            {/* Attendance */}
 
-            <ChevronRight
-              size={18}
-              className="text-slate-400"
-            />
-          </button>
+            {canViewAttendance && (
+              <button
+                type="button"
+                onClick={
+                  openAttendance
+                }
+                className="w-full flex justify-between items-center px-5 py-4 border-b last:border-none hover:bg-slate-50 transition"
+              >
 
-          <button
-            type="button"
-            onClick={openCertificates}
-            className="w-full flex justify-between items-center px-5 py-4 border-b hover:bg-slate-50 transition"
-          >
-            <div className="flex items-center gap-3">
-              <BadgeCheck
-                size={18}
-              />
+                <div className="flex items-center gap-3">
 
-              <span>
-                Certificates
-              </span>
-            </div>
+                  <ClipboardCheck
+                    size={18}
+                  />
 
-            <ChevronRight
-              size={18}
-              className="text-slate-400"
-            />
-          </button>
+                  <span>
+                    Attendance
+                  </span>
 
-          <button
-            type="button"
-            onClick={openLeaveRequests}
-            className="w-full flex justify-between items-center px-5 py-4 border-b hover:bg-slate-50 transition"
-          >
-            <div className="flex items-center gap-3">
-              <CalendarDays
-                size={18}
-              />
+                </div>
 
-              <span>
-                Leave Requests
-              </span>
-            </div>
+                <ChevronRight
+                  size={18}
+                  className="text-slate-400"
+                />
 
-            <ChevronRight
-              size={18}
-              className="text-slate-400"
-            />
-          </button>
+              </button>
+            )}
 
-          <button
-            type="button"
-            onClick={openGrievances}
-            className="w-full flex justify-between items-center px-5 py-4 border-b hover:bg-slate-50 transition"
-          >
-            <div className="flex items-center gap-3">
-              <TriangleAlert
-                size={18}
-              />
+            {/* Certificates */}
 
-              <span>
-                Grievances
-              </span>
-            </div>
+            {canViewCertificates && (
+              <button
+                type="button"
+                onClick={
+                  openCertificates
+                }
+                className="w-full flex justify-between items-center px-5 py-4 border-b last:border-none hover:bg-slate-50 transition"
+              >
 
-            <ChevronRight
-              size={18}
-              className="text-slate-400"
-            />
-          </button>
+                <div className="flex items-center gap-3">
 
-          <button
-            type="button"
-            onClick={openPerformance}
-            className="w-full flex justify-between items-center px-5 py-4 hover:bg-slate-50 transition"
-          >
-            <div className="flex items-center gap-3">
-              <Users
-                size={18}
-              />
+                  <BadgeCheck
+                    size={18}
+                  />
 
-              <span>
-                Internship Progress
-              </span>
-            </div>
+                  <span>
+                    Certificates
+                  </span>
 
-            <ChevronRight
-              size={18}
-              className="text-slate-400"
-            />
-          </button>
+                </div>
 
-        </section>
+                <ChevronRight
+                  size={18}
+                  className="text-slate-400"
+                />
+
+              </button>
+            )}
+
+            {/* Leave Requests */}
+
+            {canViewLeave && (
+              <button
+                type="button"
+                onClick={
+                  openLeaveRequests
+                }
+                className="w-full flex justify-between items-center px-5 py-4 border-b last:border-none hover:bg-slate-50 transition"
+              >
+
+                <div className="flex items-center gap-3">
+
+                  <CalendarDays
+                    size={18}
+                  />
+
+                  <span>
+                    Leave Requests
+                  </span>
+
+                </div>
+
+                <ChevronRight
+                  size={18}
+                  className="text-slate-400"
+                />
+
+              </button>
+            )}
+
+            {/* Grievances */}
+
+            {canViewGrievances && (
+              <button
+                type="button"
+                onClick={
+                  openGrievances
+                }
+                className="w-full flex justify-between items-center px-5 py-4 border-b last:border-none hover:bg-slate-50 transition"
+              >
+
+                <div className="flex items-center gap-3">
+
+                  <TriangleAlert
+                    size={18}
+                  />
+
+                  <span>
+                    Grievances
+                  </span>
+
+                </div>
+
+                <ChevronRight
+                  size={18}
+                  className="text-slate-400"
+                />
+
+              </button>
+            )}
+
+            {/* Internship Progress */}
+
+            {canViewPerformance && (
+              <button
+                type="button"
+                onClick={
+                  openPerformance
+                }
+                className="w-full flex justify-between items-center px-5 py-4 border-b last:border-none hover:bg-slate-50 transition"
+              >
+
+                <div className="flex items-center gap-3">
+
+                  <Users
+                    size={18}
+                  />
+
+                  <span>
+                    Internship Progress
+                  </span>
+
+                </div>
+
+                <ChevronRight
+                  size={18}
+                  className="text-slate-400"
+                />
+
+              </button>
+            )}
+
+          </section>
+        )}
 
       </main>
 
       <AdminBottomNavigation />
+
     </MobileLayout>
   );
 }

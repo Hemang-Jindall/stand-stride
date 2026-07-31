@@ -14,10 +14,19 @@ import AdminBottomNavigation from "../../components/AdminBottomNavigation";
 import api from "../../api/api";
 
 import {
+  hasPermission,
+} from "../../utils/permissions";
+
+import {
   BadgeCheck,
   CircleCheck,
   FilePlus2,
+  Clock,
 } from "lucide-react";
+
+// =========================
+// Types
+// =========================
 
 interface Batch {
   id: string;
@@ -44,20 +53,30 @@ interface Certificate {
   student?: Student;
 }
 
+// =========================
+// Component
+// =========================
+
 export default function AdminCertificates() {
   const navigate = useNavigate();
 
   const [students, setStudents] =
     useState<Student[]>([]);
 
-  const [certificates, setCertificates] =
-    useState<Certificate[]>([]);
+  const [
+    certificates,
+    setCertificates,
+  ] = useState<Certificate[]>([]);
 
   const [loading, setLoading] =
     useState(true);
 
-  const [issuingStudentId, setIssuingStudentId] =
-    useState<string | null>(null);
+  const [
+    issuingStudentId,
+    setIssuingStudentId,
+  ] = useState<string | null>(
+    null
+  );
 
   const [error, setError] =
     useState("");
@@ -66,86 +85,135 @@ export default function AdminCertificates() {
     useState("");
 
   // =========================
+  // Permissions
+  // =========================
+
+  const canManageCertificates =
+    hasPermission(
+      "MANAGE_CERTIFICATES"
+    );
+
+  // =========================
   // Clear Session
   // =========================
 
-  const clearSession = useCallback(() => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("student");
-    localStorage.removeItem("admin");
-    localStorage.removeItem("role");
+  const clearSession =
+    useCallback(() => {
+      localStorage.removeItem(
+        "token"
+      );
 
-    navigate("/login", {
-      replace: true,
-    });
-  }, [navigate]);
+      localStorage.removeItem(
+        "student"
+      );
+
+      localStorage.removeItem(
+        "admin"
+      );
+
+      localStorage.removeItem(
+        "role"
+      );
+
+      localStorage.removeItem(
+        "adminRole"
+      );
+
+      navigate(
+        "/login",
+        {
+          replace: true,
+        }
+      );
+    }, [navigate]);
 
   // =========================
   // Load Students + Certificates
   // =========================
 
-  const loadData = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError("");
+  const loadData =
+    useCallback(
+      async () => {
+        try {
+          setLoading(true);
+          setError("");
 
-      const token =
-        localStorage.getItem("token");
+          const token =
+            localStorage.getItem(
+              "token"
+            );
 
-      const role =
-        localStorage.getItem("role");
+          const role =
+            localStorage.getItem(
+              "role"
+            );
 
-      if (!token || role !== "admin") {
-        clearSession();
-        return;
-      }
+          if (
+            !token ||
+            role !== "admin"
+          ) {
+            clearSession();
+            return;
+          }
 
-      const headers = {
-        Authorization: `Bearer ${token}`,
-      };
+          const headers = {
+            Authorization:
+              `Bearer ${token}`,
+          };
 
-      const [
-        studentsResponse,
-        certificatesResponse,
-      ] = await Promise.all([
-        api.get("/students", {
-          headers,
-        }),
+          const [
+            studentsResponse,
+            certificatesResponse,
+          ] = await Promise.all([
+            api.get(
+              "/students",
+              {
+                headers,
+              }
+            ),
 
-        api.get("/certificates", {
-          headers,
-        }),
-      ]);
+            api.get(
+              "/certificates",
+              {
+                headers,
+              }
+            ),
+          ]);
 
-      setStudents(
-        studentsResponse.data as Student[]
-      );
+          setStudents(
+            studentsResponse.data as Student[]
+          );
 
-      setCertificates(
-        certificatesResponse.data as Certificate[]
-      );
-    } catch (error: any) {
-      console.error(
-        "LOAD CERTIFICATES ERROR:",
-        error
-      );
+          setCertificates(
+            certificatesResponse.data as Certificate[]
+          );
+        } catch (
+          error: any
+        ) {
+          console.error(
+            "LOAD CERTIFICATES ERROR:",
+            error
+          );
 
-      if (
-        error.response?.status === 401 ||
-        error.response?.status === 403
-      ) {
-        clearSession();
-        return;
-      }
+          if (
+            error.response
+              ?.status === 401
+          ) {
+            clearSession();
+            return;
+          }
 
-      setError(
-        error.response?.data?.message ??
-          "Failed to load certificates."
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [clearSession]);
+          setError(
+            error.response?.data
+              ?.message ??
+              "Failed to load certificates."
+          );
+        } finally {
+          setLoading(false);
+        }
+      },
+      [clearSession]
+    );
 
   useEffect(() => {
     loadData();
@@ -158,11 +226,19 @@ export default function AdminCertificates() {
   const certificateByStudent =
     useMemo(() => {
       const map =
-        new Map<string, Certificate>();
+        new Map<
+          string,
+          Certificate
+        >();
 
-      for (const certificate of certificates) {
+      for (
+        const certificate
+        of certificates
+      ) {
         const current =
-          map.get(certificate.studentId);
+          map.get(
+            certificate.studentId
+          );
 
         if (
           !current ||
@@ -190,17 +266,31 @@ export default function AdminCertificates() {
   async function issueCertificate(
     student: Student
   ) {
+    // Frontend permission guard
+    if (
+      !canManageCertificates
+    ) {
+      return;
+    }
+
     try {
       setError("");
       setSuccess("");
 
       const token =
-        localStorage.getItem("token");
+        localStorage.getItem(
+          "token"
+        );
 
       const role =
-        localStorage.getItem("role");
+        localStorage.getItem(
+          "role"
+        );
 
-      if (!token || role !== "admin") {
+      if (
+        !token ||
+        role !== "admin"
+      ) {
         clearSession();
         return;
       }
@@ -213,7 +303,9 @@ export default function AdminCertificates() {
         await api.post(
           "/certificates",
           {
-            studentId: student.id,
+            studentId:
+              student.id,
+
             title:
               "Internship Completion Certificate",
           },
@@ -238,26 +330,31 @@ export default function AdminCertificates() {
       setSuccess(
         `Certificate issued to ${student.firstName} ${student.lastName}.`
       );
-    } catch (error: any) {
+    } catch (
+      error: any
+    ) {
       console.error(
         "ISSUE CERTIFICATE ERROR:",
         error
       );
 
       if (
-        error.response?.status === 401 ||
-        error.response?.status === 403
+        error.response
+          ?.status === 401
       ) {
         clearSession();
         return;
       }
 
       setError(
-        error.response?.data?.message ??
+        error.response?.data
+          ?.message ??
           "Failed to issue certificate."
       );
     } finally {
-      setIssuingStudentId(null);
+      setIssuingStudentId(
+        null
+      );
     }
   }
 
@@ -292,6 +389,8 @@ export default function AdminCertificates() {
       <main className="flex-1 py-4 overflow-y-auto">
 
         <section className="mx-5">
+
+          {/* Header */}
 
           <div className="flex items-center gap-2 mb-5">
 
@@ -330,7 +429,8 @@ export default function AdminCertificates() {
               Loading certificates...
             </div>
 
-          ) : students.length === 0 ? (
+          ) : students.length ===
+            0 ? (
 
             <div className="bg-white rounded-xl shadow-sm p-8 text-center text-slate-500">
               No students found.
@@ -353,7 +453,9 @@ export default function AdminCertificates() {
 
                   return (
                     <div
-                      key={student.id}
+                      key={
+                        student.id
+                      }
                       className="bg-white rounded-xl shadow-sm p-4"
                     >
 
@@ -364,18 +466,29 @@ export default function AdminCertificates() {
                         <div>
 
                           <h3 className="font-semibold">
-                            {student.firstName}{" "}
-                            {student.lastName}
+
+                            {
+                              student.firstName
+                            }{" "}
+
+                            {
+                              student.lastName
+                            }
+
                           </h3>
 
                           <p className="text-sm text-slate-500 mt-1">
-                            {student.rollNumber}
+
+                            {
+                              student.rollNumber
+                            }
 
                             {" • "}
 
                             {student.batch
                               ?.name ??
                               "No Batch"}
+
                           </p>
 
                         </div>
@@ -412,14 +525,19 @@ export default function AdminCertificates() {
                             <div>
 
                               <p className="text-sm font-medium">
-                                {certificate.title}
+                                {
+                                  certificate.title
+                                }
                               </p>
 
                               <p className="text-xs text-slate-500 mt-1">
+
                                 Issued{" "}
+
                                 {formatDate(
                                   certificate.issuedOn
                                 )}
+
                               </p>
 
                             </div>
@@ -427,6 +545,7 @@ export default function AdminCertificates() {
                           </div>
 
                           {certificate.fileUrl && (
+
                             <a
                               href={
                                 certificate.fileUrl
@@ -437,15 +556,20 @@ export default function AdminCertificates() {
                             >
                               Open Certificate
                             </a>
+
                           )}
 
                         </div>
 
-                      ) : (
+                      ) : canManageCertificates ? (
+
+                        /* Can issue */
 
                         <button
                           type="button"
-                          disabled={issuing}
+                          disabled={
+                            issuing
+                          }
                           onClick={() =>
                             issueCertificate(
                               student
@@ -463,6 +587,20 @@ export default function AdminCertificates() {
                             : "Issue Certificate"}
 
                         </button>
+
+                      ) : (
+
+                        /* View-only */
+
+                        <div className="mt-4 border-t border-slate-100 pt-4 flex items-center gap-2 text-sm text-slate-500">
+
+                          <Clock
+                            size={17}
+                          />
+
+                          Certificate not yet issued
+
+                        </div>
 
                       )}
 

@@ -6,14 +6,26 @@ datasource db {
   provider = "postgresql"
 }
 
+// =========================
+// ADMIN / STAFF
+// =========================
+
 model Admin {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   name      String
-  email     String   @unique
+  email     String    @unique
   password  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  role      AdminRole @default(ADMIN)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Mentor profile linked to this staff account
+  mentor Mentor?
 }
+
+// =========================
+// VENUE
+// =========================
 
 model Venue {
   id        String   @id @default(cuid())
@@ -24,6 +36,10 @@ model Venue {
   batches Batch[]
 }
 
+// =========================
+// BATCH
+// =========================
+
 model Batch {
   id        String   @id @default(cuid())
   name      String
@@ -32,11 +48,16 @@ model Batch {
   venueId   String
   createdAt DateTime @default(now())
 
-  venue         Venue          @relation(fields: [venueId], references: [id])
+  venue Venue @relation(fields: [venueId], references: [id])
+
   students      Student[]
   scheduleItems ScheduleItem[]
   topics        Topic[]
 }
+
+// =========================
+// SCHEDULE
+// =========================
 
 model ScheduleItem {
   id          String   @id @default(cuid())
@@ -55,6 +76,10 @@ model ScheduleItem {
   @@index([batchId, date])
 }
 
+// =========================
+// TOPIC
+// =========================
+
 model Topic {
   id          String   @id @default(cuid())
   title       String
@@ -69,30 +94,64 @@ model Topic {
   @@index([batchId, dayNumber])
 }
 
+// =========================
+// MENTOR
+// =========================
+
 model Mentor {
   id        String   @id @default(cuid())
   name      String
   email     String?  @unique
   phone     String?
+  adminId   String?  @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  students Student[]
+  // Links this Mentor profile to its staff login.
+  // The linked Admin should have role MENTOR.
+  admin Admin? @relation(fields: [adminId], references: [id], onDelete: SetNull)
+
+  students   Student[]
+  masterData MasterData?
 }
 
+// =========================
+// MASTER DATA
+// =========================
+
+model MasterData {
+  id        String   @id @default(cuid())
+  role      String
+  name      String
+  whatsapp  String?
+  center    String?
+  purpose   String?
+  mapUrl    String?
+  formUrl   String?
+  driveUrl  String?
+  mentorId  String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  mentor Mentor? @relation(fields: [mentorId], references: [id], onDelete: SetNull)
+}
+
+// =========================
+// STUDENT
+// =========================
+
 model Student {
-  id         String @id @default(cuid())
-  rollNumber String @unique
+  id         String   @id @default(cuid())
+  rollNumber String   @unique
   firstName  String
   lastName   String
-  email      String @unique
+  email      String   @unique
   password   String
   phone      String?
   batchId    String
   mentorId   String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   batch  Batch   @relation(fields: [batchId], references: [id])
   mentor Mentor? @relation(fields: [mentorId], references: [id], onDelete: SetNull)
@@ -102,11 +161,15 @@ model Student {
   grievances    Grievance[]
   leaveRequests LeaveRequest[]
   notifications Notification[]
+  performance   Performance?
 
-  performance Performance?
-
+  @@index([batchId])
   @@index([mentorId])
 }
+
+// =========================
+// ATTENDANCE
+// =========================
 
 model Attendance {
   id        String           @id @default(cuid())
@@ -115,10 +178,15 @@ model Attendance {
   studentId String
   createdAt DateTime         @default(now())
 
-  student Student @relation(fields: [studentId], references: [id])
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, date])
+  @@index([date])
 }
+
+// =========================
+// LEAVE REQUEST
+// =========================
 
 model LeaveRequest {
   id        String      @id @default(cuid())
@@ -129,8 +197,15 @@ model LeaveRequest {
   studentId String
   createdAt DateTime    @default(now())
 
-  student Student @relation(fields: [studentId], references: [id])
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([status])
 }
+
+// =========================
+// CERTIFICATE
+// =========================
 
 model Certificate {
   id        String   @id @default(cuid())
@@ -140,8 +215,15 @@ model Certificate {
   studentId String
   createdAt DateTime @default(now())
 
-  student Student @relation(fields: [studentId], references: [id])
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([issuedOn])
 }
+
+// =========================
+// GRIEVANCE
+// =========================
 
 model Grievance {
   id          String          @id @default(cuid())
@@ -151,8 +233,15 @@ model Grievance {
   studentId   String
   createdAt   DateTime        @default(now())
 
-  student Student @relation(fields: [studentId], references: [id])
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([status])
 }
+
+// =========================
+// NOTIFICATION
+// =========================
 
 model Notification {
   id        String   @id @default(cuid())
@@ -161,8 +250,15 @@ model Notification {
   studentId String
   createdAt DateTime @default(now())
 
-  student Student @relation(fields: [studentId], references: [id])
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([createdAt])
 }
+
+// =========================
+// PERFORMANCE
+// =========================
 
 model Performance {
   id                  String   @id @default(cuid())
@@ -174,6 +270,17 @@ model Performance {
   updatedAt           DateTime @updatedAt
 
   student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+// =========================
+// ENUMS
+// =========================
+
+enum AdminRole {
+  FACILITATOR
+  COORDINATOR
+  MENTOR
+  ADMIN
 }
 
 enum AttendanceStatus {

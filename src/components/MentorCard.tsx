@@ -1,15 +1,8 @@
 import {
-  useEffect,
-  useState,
-} from "react";
-
-import {
   UserCheck,
   Mail,
   Phone,
 } from "lucide-react";
-
-import api from "../api/api";
 
 interface Mentor {
   id: string;
@@ -18,64 +11,13 @@ interface Mentor {
   phone: string | null;
 }
 
-export default function MentorCard() {
-  const [mentor, setMentor] =
-    useState<Mentor | null>(null);
+interface Props {
+  mentor: Mentor | null;
+}
 
-  const [loading, setLoading] =
-    useState(true);
-
-  const [error, setError] =
-    useState("");
-
-  useEffect(() => {
-    async function loadMentor() {
-      try {
-        setLoading(true);
-        setError("");
-
-        const token =
-          localStorage.getItem("token");
-
-        if (!token) {
-          setError(
-            "You are not logged in."
-          );
-          return;
-        }
-
-        const response =
-          await api.get(
-            "/mentors/me",
-            {
-              headers: {
-                Authorization:
-                  `Bearer ${token}`,
-              },
-            }
-          );
-
-        setMentor(
-          response.data.mentor
-        );
-      } catch (error: any) {
-        console.error(
-          "LOAD MENTOR ERROR:",
-          error
-        );
-
-        setError(
-          error.response?.data?.message ??
-            "Failed to load mentor."
-        );
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadMentor();
-  }, []);
-
+export default function MentorCard({
+  mentor,
+}: Props) {
   return (
     <section className="mx-5 bg-white rounded-xl shadow-sm p-4">
 
@@ -92,85 +34,67 @@ export default function MentorCard() {
 
       </div>
 
-      {loading && (
-        <p className="text-sm text-slate-500">
-          Loading mentor...
-        </p>
-      )}
+      {!mentor ? (
+        <div className="text-center py-4">
 
-      {!loading && error && (
-        <p className="text-sm text-red-500">
-          {error}
-        </p>
-      )}
+          <UserCheck
+            size={32}
+            className="text-slate-400 mx-auto"
+          />
 
-      {!loading &&
-        !error &&
-        !mentor && (
-          <div className="text-center py-4">
+          <p className="font-medium mt-2">
+            No mentor assigned yet
+          </p>
 
-            <UserCheck
-              size={32}
-              className="text-slate-400 mx-auto"
-            />
+          <p className="text-sm text-slate-500 mt-1">
+            Your assigned mentor will
+            appear here.
+          </p>
 
-            <p className="font-medium mt-2">
-              No mentor assigned yet
-            </p>
+        </div>
+      ) : (
+        <div>
 
-            <p className="text-sm text-slate-500 mt-1">
-              Your assigned mentor will
-              appear here.
-            </p>
+          <p className="font-semibold text-lg">
+            {mentor.name}
+          </p>
 
-          </div>
-        )}
+          <div className="space-y-3 mt-4">
 
-      {!loading &&
-        !error &&
-        mentor && (
-          <div>
+            {mentor.email && (
+              <div className="flex items-center gap-3">
 
-            <p className="font-semibold text-lg">
-              {mentor.name}
-            </p>
+                <Mail
+                  size={18}
+                  className="text-emerald-600"
+                />
 
-            <div className="space-y-3 mt-4">
+                <span className="text-sm break-all">
+                  {mentor.email}
+                </span>
 
-              {mentor.email && (
-                <div className="flex items-center gap-3">
+              </div>
+            )}
 
-                  <Mail
-                    size={18}
-                    className="text-emerald-600"
-                  />
+            {mentor.phone && (
+              <div className="flex items-center gap-3">
 
-                  <span className="text-sm break-all">
-                    {mentor.email}
-                  </span>
+                <Phone
+                  size={18}
+                  className="text-emerald-600"
+                />
 
-                </div>
-              )}
+                <span className="text-sm">
+                  {mentor.phone}
+                </span>
 
-              {mentor.phone && (
-                <div className="flex items-center gap-3">
-
-                  <Phone
-                    size={18}
-                    className="text-emerald-600"
-                  />
-
-                  <span className="text-sm">
-                    {mentor.phone}
-                  </span>
-
-                </div>
-              )}
-
-            </div>
+              </div>
+            )}
 
           </div>
-        )}
+
+        </div>
+      )}
 
     </section>
   );

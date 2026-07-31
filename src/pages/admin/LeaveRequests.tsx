@@ -13,6 +13,10 @@ import AdminBottomNavigation from "../../components/AdminBottomNavigation";
 import api from "../../api/api";
 
 import {
+  hasPermission,
+} from "../../utils/permissions";
+
+import {
   CalendarDays,
   Check,
   X,
@@ -61,72 +65,126 @@ export default function LeaveRequests() {
   const [error, setError] =
     useState("");
 
-  const [updatingId, setUpdatingId] =
-    useState<string | null>(null);
+  const [
+    updatingId,
+    setUpdatingId,
+  ] = useState<string | null>(
+    null
+  );
+
+  // =========================
+  // Permissions
+  // =========================
+
+  const canManageLeave =
+    hasPermission(
+      "MANAGE_LEAVE"
+    );
+
+  // =========================
+  // Clear Session
+  // =========================
+
+  const clearSession =
+    useCallback(() => {
+      localStorage.removeItem(
+        "token"
+      );
+
+      localStorage.removeItem(
+        "admin"
+      );
+
+      localStorage.removeItem(
+        "student"
+      );
+
+      localStorage.removeItem(
+        "role"
+      );
+
+      localStorage.removeItem(
+        "adminRole"
+      );
+
+      navigate(
+        "/login",
+        {
+          replace: true,
+        }
+      );
+    }, [navigate]);
 
   // =========================
   // Load Leave Requests
   // =========================
 
-  const loadRequests = useCallback(
-    async () => {
-      try {
-        setLoading(true);
-        setError("");
+  const loadRequests =
+    useCallback(
+      async () => {
+        try {
+          setLoading(true);
+          setError("");
 
-        const token =
-          localStorage.getItem("token");
+          const token =
+            localStorage.getItem(
+              "token"
+            );
 
-        const role =
-          localStorage.getItem("role");
+          const role =
+            localStorage.getItem(
+              "role"
+            );
 
-        if (
-          !token ||
-          role !== "admin"
-        ) {
-          navigate("/login");
-          return;
-        }
-
-        const response = await api.get(
-          "/leave-requests",
-          {
-            headers: {
-              Authorization:
-                `Bearer ${token}`,
-            },
+          if (
+            !token ||
+            role !== "admin"
+          ) {
+            clearSession();
+            return;
           }
-        );
 
-        setRequests(response.data);
+          const response =
+            await api.get(
+              "/leave-requests",
+              {
+                headers: {
+                  Authorization:
+                    `Bearer ${token}`,
+                },
+              }
+            );
 
-      } catch (error: any) {
-        console.error(
-          "LOAD LEAVE REQUESTS ERROR:",
-          error
-        );
-
-        if (
-          error.response?.status === 401 ||
-          error.response?.status === 403
+          setRequests(
+            response.data
+          );
+        } catch (
+          error: any
         ) {
-          localStorage.removeItem("token");
-          localStorage.removeItem("admin");
-          localStorage.removeItem("role");
+          console.error(
+            "LOAD LEAVE REQUESTS ERROR:",
+            error
+          );
 
-          navigate("/login");
-          return;
+          if (
+            error.response
+              ?.status === 401
+          ) {
+            clearSession();
+            return;
+          }
+
+          setError(
+            error.response?.data
+              ?.message ??
+              "Failed to load leave requests."
+          );
+        } finally {
+          setLoading(false);
         }
-
-        setError(
-          "Failed to load leave requests."
-        );
-      } finally {
-        setLoading(false);
-      }
-    },
-    [navigate]
-  );
+      },
+      [clearSession]
+    );
 
   useEffect(() => {
     loadRequests();
@@ -138,64 +196,77 @@ export default function LeaveRequests() {
 
   async function updateStatus(
     id: string,
-    status: "APPROVED" | "REJECTED"
+    status:
+      | "APPROVED"
+      | "REJECTED"
   ) {
+    // Frontend permission guard
+    if (!canManageLeave) {
+      return;
+    }
+
     try {
       setUpdatingId(id);
       setError("");
 
       const token =
-        localStorage.getItem("token");
+        localStorage.getItem(
+          "token"
+        );
 
       if (!token) {
-        navigate("/login");
+        clearSession();
         return;
       }
 
-      const response = await api.patch(
-        `/leave-requests/${id}/status`,
-        {
-          status,
-        },
-        {
-          headers: {
-            Authorization:
-              `Bearer ${token}`,
+      const response =
+        await api.patch(
+          `/leave-requests/${id}/status`,
+          {
+            status,
           },
-        }
-      );
+          {
+            headers: {
+              Authorization:
+                `Bearer ${token}`,
+            },
+          }
+        );
 
       const updatedRequest =
         response.data as LeaveRequest;
 
-      setRequests((current) =>
-        current.map((request) =>
-          request.id === id
-            ? updatedRequest
-            : request
-        )
+      setRequests(
+        (current) =>
+          current.map(
+            (request) =>
+              request.id === id
+                ? {
+                    ...request,
+                    ...updatedRequest,
+                  }
+                : request
+          )
       );
-
-    } catch (error: any) {
+    } catch (
+      error: any
+    ) {
       console.error(
         "UPDATE LEAVE REQUEST ERROR:",
         error
       );
 
       if (
-        error.response?.status === 401 ||
-        error.response?.status === 403
+        error.response
+          ?.status === 401
       ) {
-        localStorage.removeItem("token");
-        localStorage.removeItem("admin");
-        localStorage.removeItem("role");
-
-        navigate("/login");
+        clearSession();
         return;
       }
 
       setError(
-        error.response?.data?.message ??
+        error.response?.data
+          ?.message ??
           "Failed to update leave request."
       );
     } finally {
@@ -207,7 +278,9 @@ export default function LeaveRequests() {
   // Helpers
   // =========================
 
-  function formatDate(date: string) {
+  function formatDate(
+    date: string
+  ) {
     return new Date(
       date
     ).toLocaleDateString(
@@ -223,11 +296,15 @@ export default function LeaveRequests() {
   function getStatusClasses(
     status: LeaveStatus
   ) {
-    if (status === "APPROVED") {
+    if (
+      status === "APPROVED"
+    ) {
       return "bg-emerald-100 text-emerald-700";
     }
 
-    if (status === "REJECTED") {
+    if (
+      status === "REJECTED"
+    ) {
       return "bg-red-100 text-red-700";
     }
 
@@ -237,11 +314,15 @@ export default function LeaveRequests() {
   function getStatusLabel(
     status: LeaveStatus
   ) {
-    if (status === "APPROVED") {
+    if (
+      status === "APPROVED"
+    ) {
       return "Approved";
     }
 
-    if (status === "REJECTED") {
+    if (
+      status === "REJECTED"
+    ) {
       return "Rejected";
     }
 
@@ -254,6 +335,7 @@ export default function LeaveRequests() {
 
   return (
     <MobileLayout>
+
       <Header />
 
       <main className="flex-1 py-4 overflow-y-auto">
@@ -264,7 +346,9 @@ export default function LeaveRequests() {
             Leave Requests
           </h1>
 
-          {/* Error */}
+          {/* =========================
+              Error
+          ========================= */}
 
           {error && (
             <div className="bg-red-50 text-red-600 rounded-xl p-4 mb-4 text-sm">
@@ -272,7 +356,9 @@ export default function LeaveRequests() {
             </div>
           )}
 
-          {/* Loading */}
+          {/* =========================
+              Loading
+          ========================= */}
 
           {loading && (
             <div className="bg-white rounded-xl shadow-sm p-8 text-center text-slate-500">
@@ -280,185 +366,264 @@ export default function LeaveRequests() {
             </div>
           )}
 
-          {/* Requests */}
+          {/* =========================
+              Requests
+          ========================= */}
 
           {!loading && (
             <div className="space-y-3">
 
-              {requests.map((request) => {
-                const updating =
-                  updatingId === request.id;
+              {requests.map(
+                (request) => {
+                  const updating =
+                    updatingId ===
+                    request.id;
 
-                return (
-                  <div
-                    key={request.id}
-                    className="bg-white rounded-xl shadow-sm p-4"
-                  >
+                  return (
+                    <div
+                      key={
+                        request.id
+                      }
+                      className="bg-white rounded-xl shadow-sm p-4"
+                    >
 
-                    {/* Student */}
+                      {/* =========================
+                          Student
+                      ========================= */}
 
-                    <div className="flex justify-between items-start gap-3">
+                      <div className="flex justify-between items-start gap-3">
 
-                      <div>
+                        <div>
 
-                        <h3 className="font-semibold">
-                          {
-                            request.student
-                              .firstName
-                          }{" "}
-                          {
-                            request.student
-                              .lastName
-                          }
-                        </h3>
+                          <h3 className="font-semibold">
 
-                        <p className="text-sm text-slate-500">
-                          {
-                            request.student
-                              .rollNumber
-                          }
-                          {" • "}
-                          {request.student
-                            .batch?.name ??
-                            "No Batch"}
-                        </p>
+                            {
+                              request.student
+                                .firstName
+                            }{" "}
+
+                            {
+                              request.student
+                                .lastName
+                            }
+
+                          </h3>
+
+                          <p className="text-sm text-slate-500">
+
+                            {
+                              request.student
+                                .rollNumber
+                            }
+
+                            {" • "}
+
+                            {request.student
+                              .batch?.name ??
+                              "No Batch"}
+
+                          </p>
+
+                        </div>
+
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusClasses(
+                            request.status
+                          )}`}
+                        >
+
+                          {getStatusLabel(
+                            request.status
+                          )}
+
+                        </span>
 
                       </div>
 
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusClasses(
-                          request.status
-                        )}`}
-                      >
-                        {getStatusLabel(
-                          request.status
-                        )}
-                      </span>
+                      {/* =========================
+                          Dates
+                      ========================= */}
 
-                    </div>
+                      <div className="flex items-start gap-2 mt-4">
 
-                    {/* Dates */}
+                        <CalendarDays
+                          size={18}
+                          className="text-slate-400 mt-0.5"
+                        />
 
-                    <div className="flex items-start gap-2 mt-4">
+                        <div>
 
-                      <CalendarDays
-                        size={18}
-                        className="text-slate-400 mt-0.5"
-                      />
+                          <p className="text-xs text-slate-500">
+                            Leave Period
+                          </p>
 
-                      <div>
+                          <p className="text-sm font-medium">
+
+                            {formatDate(
+                              request.fromDate
+                            )}
+
+                            {" - "}
+
+                            {formatDate(
+                              request.toDate
+                            )}
+
+                          </p>
+
+                        </div>
+
+                      </div>
+
+                      {/* =========================
+                          Reason
+                      ========================= */}
+
+                      <div className="mt-4">
 
                         <p className="text-xs text-slate-500">
-                          Leave Period
+                          Reason
                         </p>
 
-                        <p className="text-sm font-medium">
-                          {formatDate(
-                            request.fromDate
-                          )}
-
-                          {" - "}
-
-                          {formatDate(
-                            request.toDate
-                          )}
+                        <p className="mt-1">
+                          {
+                            request.reason
+                          }
                         </p>
 
                       </div>
 
-                    </div>
+                      {/* =========================
+                          Pending Actions
+                      ========================= */}
 
-                    {/* Reason */}
+                      {request.status ===
+                        "PENDING" &&
+                        canManageLeave && (
 
-                    <div className="mt-4">
+                        <div className="flex gap-2 mt-4">
 
-                      <p className="text-xs text-slate-500">
-                        Reason
-                      </p>
+                          {/* Approve */}
 
-                      <p className="mt-1">
-                        {request.reason}
-                      </p>
+                          <button
+                            type="button"
+                            disabled={
+                              updating
+                            }
+                            onClick={() =>
+                              updateStatus(
+                                request.id,
+                                "APPROVED"
+                              )
+                            }
+                            className="flex-1 bg-emerald-600 text-white rounded-lg py-2.5 flex items-center justify-center gap-2 disabled:opacity-50"
+                          >
 
-                    </div>
+                            <Check
+                              size={17}
+                            />
 
-                    {/* Pending Actions */}
+                            {updating
+                              ? "Updating..."
+                              : "Approve"}
 
-                    {request.status ===
-                      "PENDING" && (
-                      <div className="flex gap-2 mt-4">
+                          </button>
 
-                        <button
-                          type="button"
-                          disabled={updating}
-                          onClick={() =>
-                            updateStatus(
-                              request.id,
-                              "APPROVED"
-                            )
-                          }
-                          className="flex-1 bg-emerald-600 text-white rounded-lg py-2.5 flex items-center justify-center gap-2 disabled:opacity-50"
-                        >
-                          <Check size={17} />
+                          {/* Reject */}
 
-                          {updating
-                            ? "Updating..."
-                            : "Approve"}
-                        </button>
+                          <button
+                            type="button"
+                            disabled={
+                              updating
+                            }
+                            onClick={() =>
+                              updateStatus(
+                                request.id,
+                                "REJECTED"
+                              )
+                            }
+                            className="flex-1 bg-red-500 text-white rounded-lg py-2.5 flex items-center justify-center gap-2 disabled:opacity-50"
+                          >
 
-                        <button
-                          type="button"
-                          disabled={updating}
-                          onClick={() =>
-                            updateStatus(
-                              request.id,
-                              "REJECTED"
-                            )
-                          }
-                          className="flex-1 bg-red-500 text-white rounded-lg py-2.5 flex items-center justify-center gap-2 disabled:opacity-50"
-                        >
-                          <X size={17} />
+                            <X
+                              size={17}
+                            />
 
-                          Reject
-                        </button>
+                            {updating
+                              ? "Updating..."
+                              : "Reject"}
 
-                      </div>
-                    )}
+                          </button>
 
-                    {/* Decision */}
+                        </div>
+                      )}
 
-                    {request.status !==
-                      "PENDING" && (
-                      <div className="mt-4 flex items-center gap-2 text-sm text-slate-500">
+                      {/* =========================
+                          Pending Read-Only
+                      ========================= */}
 
-                        {request.status ===
-                        "APPROVED" ? (
-                          <Check
+                      {request.status ===
+                        "PENDING" &&
+                        !canManageLeave && (
+
+                        <div className="mt-4 flex items-center gap-2 text-sm text-amber-600">
+
+                          <Clock
                             size={17}
-                            className="text-emerald-600"
                           />
-                        ) : (
-                          <X
-                            size={17}
-                            className="text-red-500"
-                          />
-                        )}
 
-                        Request{" "}
-                        {getStatusLabel(
-                          request.status
-                        ).toLowerCase()}
+                          Awaiting decision
 
-                      </div>
-                    )}
+                        </div>
+                      )}
 
-                  </div>
-                );
-              })}
+                      {/* =========================
+                          Decision
+                      ========================= */}
 
-              {/* Empty State */}
+                      {request.status !==
+                        "PENDING" && (
 
-              {requests.length === 0 && (
+                        <div className="mt-4 flex items-center gap-2 text-sm text-slate-500">
+
+                          {request.status ===
+                          "APPROVED" ? (
+
+                            <Check
+                              size={17}
+                              className="text-emerald-600"
+                            />
+
+                          ) : (
+
+                            <X
+                              size={17}
+                              className="text-red-500"
+                            />
+
+                          )}
+
+                          Request{" "}
+
+                          {getStatusLabel(
+                            request.status
+                          ).toLowerCase()}
+
+                        </div>
+                      )}
+
+                    </div>
+                  );
+                }
+              )}
+
+              {/* =========================
+                  Empty State
+              ========================= */}
+
+              {requests.length ===
+                0 && (
+
                 <div className="bg-white rounded-xl shadow-sm p-8 text-center">
 
                   <Clock
@@ -481,6 +646,7 @@ export default function LeaveRequests() {
       </main>
 
       <AdminBottomNavigation />
+
     </MobileLayout>
   );
 }

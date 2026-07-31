@@ -94,88 +94,146 @@ export default function AppRoutes() {
 
         <Route
           path="/dashboard"
-          element={<Dashboard />}
+          element={
+            <ProtectedRoute role="student">
+              <Dashboard />
+            </ProtectedRoute>
+          }
         />
 
         <Route
           path="/attendance"
-          element={<Attendance />}
+          element={
+            <ProtectedRoute role="student">
+              <Attendance />
+            </ProtectedRoute>
+          }
         />
 
         <Route
           path="/schedule"
-          element={<Schedule />}
+          element={
+            <ProtectedRoute role="student">
+              <Schedule />
+            </ProtectedRoute>
+          }
         />
 
         <Route
           path="/profile"
-          element={<Profile />}
+          element={
+            <ProtectedRoute role="student">
+              <Profile />
+            </ProtectedRoute>
+          }
         />
 
         <Route
           path="/certificate"
-          element={<Certificate />}
+          element={
+            <ProtectedRoute role="student">
+              <Certificate />
+            </ProtectedRoute>
+          }
         />
 
         <Route
           path="/grievance"
-          element={<Grievance />}
+          element={
+            <ProtectedRoute role="student">
+              <Grievance />
+            </ProtectedRoute>
+          }
         />
 
         <Route
           path="/leave-requests"
           element={
-            <StudentLeaveRequests />
+            <ProtectedRoute role="student">
+              <StudentLeaveRequests />
+            </ProtectedRoute>
           }
         />
 
         <Route
           path="/notifications"
-          element={<Notifications />}
+          element={
+            <ProtectedRoute role="student">
+              <Notifications />
+            </ProtectedRoute>
+          }
         />
 
         <Route
           path="/settings"
-          element={<SettingsPage />}
+          element={
+            <ProtectedRoute role="student">
+              <SettingsPage />
+            </ProtectedRoute>
+          }
         />
 
         <Route
           path="/announcements"
-          element={<Announcements />}
+          element={
+            <ProtectedRoute role="student">
+              <Announcements />
+            </ProtectedRoute>
+          }
         />
 
         <Route
           path="/more"
-          element={<More />}
+          element={
+            <ProtectedRoute role="student">
+              <More />
+            </ProtectedRoute>
+          }
         />
 
         <Route
           path="/contacts"
-          element={<SOPContacts />}
+          element={
+            <ProtectedRoute role="student">
+              <SOPContacts />
+            </ProtectedRoute>
+          }
         />
 
         <Route
           path="/emergency"
           element={
-            <EmergencySupport />
+            <ProtectedRoute role="student">
+              <EmergencySupport />
+            </ProtectedRoute>
           }
         />
 
         <Route
           path="/about"
           element={
-            <AboutInternship />
+            <ProtectedRoute role="student">
+              <AboutInternship />
+            </ProtectedRoute>
           }
         />
 
         <Route
           path="/privacy"
-          element={<Privacy />}
+          element={
+            <ProtectedRoute role="student">
+              <Privacy />
+            </ProtectedRoute>
+          }
         />
 
         <Route
           path="/help"
-          element={<Help />}
+          element={
+            <ProtectedRoute role="student">
+              <Help />
+            </ProtectedRoute>
+          }
         />
 
         {/* =======================
@@ -185,7 +243,7 @@ export default function AppRoutes() {
         <Route
           path="/admin/dashboard"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute role="admin">
               <AdminDashboard />
             </ProtectedRoute>
           }
@@ -198,7 +256,10 @@ export default function AppRoutes() {
         <Route
           path="/admin/students"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              role="admin"
+              permission="VIEW_STUDENTS"
+            >
               <Students />
             </ProtectedRoute>
           }
@@ -207,7 +268,10 @@ export default function AppRoutes() {
         <Route
           path="/admin/students/add"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              role="admin"
+              permission="CREATE_STUDENTS"
+            >
               <AddStudent />
             </ProtectedRoute>
           }
@@ -216,7 +280,10 @@ export default function AppRoutes() {
         <Route
           path="/admin/students/edit"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              role="admin"
+              permission="EDIT_STUDENTS"
+            >
               <EditStudent />
             </ProtectedRoute>
           }
@@ -225,7 +292,10 @@ export default function AppRoutes() {
         <Route
           path="/admin/student"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              role="admin"
+              permission="VIEW_STUDENTS"
+            >
               <StudentDetails />
             </ProtectedRoute>
           }
@@ -238,7 +308,10 @@ export default function AppRoutes() {
         <Route
           path="/admin/attendance"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              role="admin"
+              permission="VIEW_ATTENDANCE"
+            >
               <AdminAttendance />
             </ProtectedRoute>
           }
@@ -251,7 +324,10 @@ export default function AppRoutes() {
         <Route
           path="/admin/schedule"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              role="admin"
+              permission="VIEW_SCHEDULE"
+            >
               <AdminSchedule />
             </ProtectedRoute>
           }
@@ -264,7 +340,10 @@ export default function AppRoutes() {
         <Route
           path="/admin/grievances"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              role="admin"
+              permission="VIEW_GRIEVANCES"
+            >
               <AdminGrievances />
             </ProtectedRoute>
           }
@@ -273,7 +352,10 @@ export default function AppRoutes() {
         <Route
           path="/admin/grievance-details"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              role="admin"
+              permission="VIEW_GRIEVANCES"
+            >
               <GrievanceDetails />
             </ProtectedRoute>
           }
@@ -286,7 +368,10 @@ export default function AppRoutes() {
         <Route
           path="/admin/certificates"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              role="admin"
+              permission="VIEW_CERTIFICATES"
+            >
               <AdminCertificates />
             </ProtectedRoute>
           }
@@ -299,7 +384,10 @@ export default function AppRoutes() {
         <Route
           path="/admin/leave-requests"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              role="admin"
+              permission="VIEW_LEAVE"
+            >
               <AdminLeaveRequests />
             </ProtectedRoute>
           }
@@ -312,7 +400,10 @@ export default function AppRoutes() {
         <Route
           path="/admin/performance"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              role="admin"
+              permission="VIEW_PERFORMANCE"
+            >
               <Performance />
             </ProtectedRoute>
           }
@@ -325,7 +416,10 @@ export default function AppRoutes() {
         <Route
           path="/admin/notifications"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              role="admin"
+              permission="VIEW_NOTIFICATIONS"
+            >
               <AdminNotifications />
             </ProtectedRoute>
           }
@@ -338,7 +432,7 @@ export default function AppRoutes() {
         <Route
           path="/admin/settings"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute role="admin">
               <AdminSettings />
             </ProtectedRoute>
           }
@@ -351,7 +445,10 @@ export default function AppRoutes() {
         <Route
           path="/admin/MasterData"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              role="admin"
+              permission="VIEW_MASTER_DATA"
+            >
               <MasterData />
             </ProtectedRoute>
           }
@@ -364,7 +461,10 @@ export default function AppRoutes() {
         <Route
           path="/admin/MentorAssignments"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              role="admin"
+              permission="VIEW_MENTORS"
+            >
               <MentorAssignments />
             </ProtectedRoute>
           }
@@ -377,7 +477,10 @@ export default function AppRoutes() {
         <Route
           path="/admin/VenueAssignments"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute
+              role="admin"
+              permission="VIEW_VENUES"
+            >
               <VenueAssignments />
             </ProtectedRoute>
           }
@@ -390,7 +493,7 @@ export default function AppRoutes() {
         <Route
           path="/admin/more"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute role="admin">
               <AdminMore />
             </ProtectedRoute>
           }

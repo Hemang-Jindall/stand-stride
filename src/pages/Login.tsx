@@ -19,58 +19,122 @@ export default function Login() {
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword, setShowPassword] =
+    useState(false);
+
+  // =========================
+  // Clear Existing Session
+  // =========================
+
+  function clearSession() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("admin");
+    localStorage.removeItem("student");
+    localStorage.removeItem("role");
+    localStorage.removeItem("adminRole");
+  }
+
+  // =========================
+  // Login
+  // =========================
 
   async function login() {
     if (!email.trim() || !password) {
-      setError("Email and password are required.");
+      setError(
+        "Email and password are required."
+      );
+
       return;
     }
 
     setError("");
     setLoading(true);
 
-    // Clear any old session before logging in
-    localStorage.removeItem("token");
-    localStorage.removeItem("admin");
-    localStorage.removeItem("student");
-    localStorage.removeItem("role");
+    // Remove any old login before
+    // attempting a new one.
+    clearSession();
 
     try {
       // =========================
-      // Try Admin Login
+      // Try Staff Login
       // =========================
 
       try {
-        const response = await api.post("/auth/login", {
-          email: email.trim(),
-          password,
-        });
+        const response = await api.post(
+          "/auth/login",
+          {
+            email: email
+              .trim()
+              .toLowerCase(),
+            password,
+          }
+        );
 
+        const {
+          token,
+          admin,
+        } = response.data;
+
+        if (
+          !token ||
+          !admin ||
+          !admin.role
+        ) {
+          throw new Error(
+            "Invalid staff login response."
+          );
+        }
+
+        // JWT
         localStorage.setItem(
           "token",
-          response.data.token
+          token
         );
 
+        // Full staff account
         localStorage.setItem(
           "admin",
-          JSON.stringify(response.data.admin)
+          JSON.stringify(admin)
         );
 
+        // General account type
         localStorage.setItem(
           "role",
           "admin"
         );
 
-        navigate("/admin/dashboard");
+        // Specific staff permission
+        // FACILITATOR
+        // COORDINATOR
+        // ADMIN
+        localStorage.setItem(
+          "adminRole",
+          admin.role
+        );
+
+        navigate(
+          "/admin/dashboard",
+          {
+            replace: true,
+          }
+        );
+
         return;
       } catch (adminError: any) {
-        // Only try student login when admin credentials
-        // were rejected normally.
+        // A 401 means the credentials
+        // weren't for a staff account,
+        // so try student login.
         if (
           adminError.response &&
           adminError.response.status !== 401
         ) {
+          throw adminError;
+        }
+
+        // A locally thrown error, such as
+        // malformed response data, should
+        // not fall through to student login.
+        if (!adminError.response) {
           throw adminError;
         }
       }
@@ -82,30 +146,66 @@ export default function Login() {
       const response = await api.post(
         "/auth/student/login",
         {
-          email: email.trim(),
+          email: email
+            .trim()
+            .toLowerCase(),
           password,
         }
       );
 
+      const {
+        token,
+        student,
+      } = response.data;
+
+      if (
+        !token ||
+        !student
+      ) {
+        throw new Error(
+          "Invalid student login response."
+        );
+      }
+
+      // JWT
       localStorage.setItem(
         "token",
-        response.data.token
+        token
       );
 
+      // Student information
       localStorage.setItem(
         "student",
-        JSON.stringify(response.data.student)
+        JSON.stringify(student)
       );
 
+      // Account type
       localStorage.setItem(
         "role",
         "student"
       );
 
-      navigate("/dashboard");
+      // Students never have an
+      // admin permission role.
+      localStorage.removeItem(
+        "adminRole"
+      );
 
+      navigate(
+        "/dashboard",
+        {
+          replace: true,
+        }
+      );
     } catch (error: any) {
-      console.error("LOGIN ERROR:", error);
+      console.error(
+        "LOGIN ERROR:",
+        error
+      );
+
+      // Make sure a failed login doesn't
+      // leave behind a partial session.
+      clearSession();
 
       setError(
         error.response?.data?.message ??
@@ -116,18 +216,33 @@ export default function Login() {
     }
   }
 
+  // =========================
+  // Enter Key
+  // =========================
+
   function handleKeyDown(
     e: React.KeyboardEvent<HTMLInputElement>
   ) {
-    if (e.key === "Enter" && !loading) {
+    if (
+      e.key === "Enter" &&
+      !loading
+    ) {
       login();
     }
   }
+
+  // =========================
+  // UI
+  // =========================
 
   return (
     <main className="min-h-screen bg-slate-100 flex items-center justify-center px-5">
 
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg p-6">
+
+        {/* =========================
+            Header
+        ========================= */}
 
         <h1 className="text-3xl font-bold text-center text-emerald-600">
           Stand & Stride
@@ -136,6 +251,10 @@ export default function Login() {
         <p className="text-center text-slate-500 mt-2">
           Junior Internship Management
         </p>
+
+        {/* =========================
+            Login Form
+        ========================= */}
 
         <div className="mt-8 space-y-4">
 
@@ -153,10 +272,15 @@ export default function Login() {
               placeholder="Email"
               value={email}
               disabled={loading}
+              autoComplete="email"
               onChange={(e) =>
-                setEmail(e.target.value)
+                setEmail(
+                  e.target.value
+                )
               }
-              onKeyDown={handleKeyDown}
+              onKeyDown={
+                handleKeyDown
+              }
               className="w-full border rounded-lg pl-10 pr-3 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-60"
             />
 
@@ -180,10 +304,15 @@ export default function Login() {
               placeholder="Password"
               value={password}
               disabled={loading}
+              autoComplete="current-password"
               onChange={(e) =>
-                setPassword(e.target.value)
+                setPassword(
+                  e.target.value
+                )
               }
-              onKeyDown={handleKeyDown}
+              onKeyDown={
+                handleKeyDown
+              }
               className="w-full border rounded-lg pl-10 pr-10 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-60"
             />
 
@@ -192,16 +321,24 @@ export default function Login() {
               disabled={loading}
               onClick={() =>
                 setShowPassword(
-                  !showPassword
+                  (current) =>
+                    !current
                 )
               }
               className="absolute right-3 top-3 text-slate-500 disabled:opacity-60"
+              aria-label={
+                showPassword
+                  ? "Hide password"
+                  : "Show password"
+              }
             >
+
               {showPassword ? (
                 <EyeOff size={18} />
               ) : (
                 <Eye size={18} />
               )}
+
             </button>
 
           </div>
@@ -214,7 +351,7 @@ export default function Login() {
             </p>
           )}
 
-          {/* Login */}
+          {/* Login Button */}
 
           <button
             type="button"
@@ -230,52 +367,6 @@ export default function Login() {
               : "Login"}
 
           </button>
-
-        </div>
-
-        {/* Demo Accounts */}
-
-        <div className="mt-8">
-
-          <h2 className="font-semibold text-slate-700 mb-3">
-            Demo Login
-          </h2>
-
-          <div className="space-y-3">
-
-            <div className="rounded-lg bg-slate-100 p-3">
-
-              <p className="font-semibold">
-                👨‍💼 Admin
-              </p>
-
-              <p className="text-sm text-slate-600">
-                admin@standstride.com
-              </p>
-
-              <p className="text-sm text-slate-600">
-                admin123
-              </p>
-
-            </div>
-
-            <div className="rounded-lg bg-slate-100 p-3">
-
-              <p className="font-semibold">
-                👨‍🎓 Student
-              </p>
-
-              <p className="text-sm text-slate-600">
-                hemang@example.com
-              </p>
-
-              <p className="text-sm text-slate-600">
-                password
-              </p>
-
-            </div>
-
-          </div>
 
         </div>
 

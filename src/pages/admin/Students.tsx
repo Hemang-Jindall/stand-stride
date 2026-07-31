@@ -13,6 +13,10 @@ import AdminBottomNavigation from "../../components/AdminBottomNavigation";
 import api from "../../api/api";
 
 import {
+  hasPermission,
+} from "../../utils/permissions";
+
+import {
   Search,
   CircleCheck,
   ChevronRight,
@@ -55,6 +59,20 @@ export default function Students() {
     useState("");
 
   // =======================
+  // Permissions
+  // =======================
+
+  const canCreateStudent =
+    hasPermission(
+      "CREATE_STUDENTS"
+    );
+
+  const canViewPerformance =
+    hasPermission(
+      "VIEW_PERFORMANCE"
+    );
+
+  // =======================
   // Load Students
   // =======================
 
@@ -76,14 +94,19 @@ export default function Students() {
         }
 
         const response =
-          await api.get("/students", {
-            headers: {
-              Authorization:
-                `Bearer ${token}`,
-            },
-          });
+          await api.get(
+            "/students",
+            {
+              headers: {
+                Authorization:
+                  `Bearer ${token}`,
+              },
+            }
+          );
 
-        setStudents(response.data);
+        setStudents(
+          response.data
+        );
       } catch (error) {
         console.error(
           "Failed to load students:",
@@ -105,19 +128,25 @@ export default function Students() {
   // Available Batches
   // =======================
 
-  const batches = useMemo(() => {
-    const names = students
-      .map(
-        (student) =>
-          student.batch?.name
-      )
-      .filter(
-        (name): name is string =>
-          Boolean(name)
-      );
+  const batches =
+    useMemo(() => {
+      const names =
+        students
+          .map(
+            (student) =>
+              student.batch?.name
+          )
+          .filter(
+            (
+              name
+            ): name is string =>
+              Boolean(name)
+          );
 
-    return [...new Set(names)];
-  }, [students]);
+      return [
+        ...new Set(names),
+      ];
+    }, [students]);
 
   // =======================
   // Search + Batch Filter
@@ -152,7 +181,8 @@ export default function Students() {
               );
 
           const matchesBatch =
-            selectedBatch === "All" ||
+            selectedBatch ===
+              "All" ||
             student.batch?.name ===
               selectedBatch;
 
@@ -188,18 +218,30 @@ export default function Students() {
   function openPerformance(
     student: Student
   ) {
+    if (
+      !canViewPerformance
+    ) {
+      return;
+    }
+
     navigate(
       "/admin/performance",
       {
         state: {
-          studentId: student.id,
+          studentId:
+            student.id,
         },
       }
     );
   }
 
+  // =======================
+  // UI
+  // =======================
+
   return (
     <MobileLayout>
+
       <Header />
 
       <main className="flex-1 py-4 overflow-y-auto">
@@ -214,19 +256,23 @@ export default function Students() {
               Students
             </h1>
 
-            <button
-              type="button"
-              onClick={() =>
-                navigate(
-                  "/admin/students/add"
-                )
-              }
-              className="bg-emerald-600 text-white px-4 py-2 rounded-xl flex items-center gap-2"
-            >
-              <Plus size={18} />
+            {canCreateStudent && (
+              <button
+                type="button"
+                onClick={() =>
+                  navigate(
+                    "/admin/students/add"
+                  )
+                }
+                className="bg-emerald-600 text-white px-4 py-2 rounded-xl flex items-center gap-2"
+              >
 
-              Add
-            </button>
+                <Plus size={18} />
+
+                Add
+
+              </button>
+            )}
 
           </div>
 
@@ -296,130 +342,145 @@ export default function Students() {
 
           {/* Error */}
 
-          {!loading && error && (
-            <div className="bg-white rounded-xl shadow-sm p-8 text-center text-red-500">
-              {error}
-            </div>
-          )}
+          {!loading &&
+            error && (
+              <div className="bg-white rounded-xl shadow-sm p-8 text-center text-red-500">
+                {error}
+              </div>
+            )}
 
           {/* Students */}
 
-          {!loading && !error && (
-            <div className="space-y-3">
+          {!loading &&
+            !error && (
+              <div className="space-y-3">
 
-              {filteredStudents.length >
-              0 ? (
+                {filteredStudents.length >
+                0 ? (
 
-                filteredStudents.map(
-                  (student) => (
+                  filteredStudents.map(
+                    (student) => (
 
-                    <div
-                      key={student.id}
-                      className="bg-white rounded-xl shadow-sm overflow-hidden"
-                    >
-
-                      {/* Student Details */}
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          openStudent(
-                            student
-                          )
+                      <div
+                        key={
+                          student.id
                         }
-                        className="w-full p-4 flex justify-between items-center hover:bg-slate-50 transition"
+                        className="bg-white rounded-xl shadow-sm overflow-hidden"
                       >
 
-                        <div>
-
-                          <h3 className="font-semibold text-left">
-                            {
-                              student.firstName
-                            }{" "}
-                            {
-                              student.lastName
-                            }
-                          </h3>
-
-                          <p className="text-sm text-slate-500 text-left">
-                            {
-                              student.rollNumber
-                            }
-                            {" • "}
-                            {student.batch
-                              ?.name ??
-                              "No Batch"}
-                          </p>
-
-                        </div>
-
-                        <div className="flex items-center gap-3">
-
-                          <div className="flex items-center gap-1">
-
-                            <CircleCheck
-                              size={16}
-                              className="text-emerald-600"
-                            />
-
-                            <span className="text-xs">
-                              Active
-                            </span>
-
-                          </div>
-
-                          <ChevronRight
-                            size={18}
-                            className="text-slate-400"
-                          />
-
-                        </div>
-
-                      </button>
-
-                      {/* Performance */}
-
-                      <div className="border-t border-slate-100 p-3">
+                        {/* Student Details */}
 
                         <button
                           type="button"
                           onClick={() =>
-                            openPerformance(
+                            openStudent(
                               student
                             )
                           }
-                          className="w-full rounded-lg bg-emerald-50 text-emerald-700 py-2.5 flex items-center justify-center gap-2 font-medium hover:bg-emerald-100 transition"
+                          className="w-full p-4 flex justify-between items-center hover:bg-slate-50 transition"
                         >
-                          <ChartNoAxesColumnIncreasing
-                            size={18}
-                          />
 
-                          View Performance
+                          <div>
+
+                            <h3 className="font-semibold text-left">
+                              {
+                                student.firstName
+                              }{" "}
+                              {
+                                student.lastName
+                              }
+                            </h3>
+
+                            <p className="text-sm text-slate-500 text-left">
+                              {
+                                student.rollNumber
+                              }
+
+                              {" • "}
+
+                              {student.batch
+                                ?.name ??
+                                "No Batch"}
+                            </p>
+
+                          </div>
+
+                          <div className="flex items-center gap-3">
+
+                            <div className="flex items-center gap-1">
+
+                              <CircleCheck
+                                size={
+                                  16
+                                }
+                                className="text-emerald-600"
+                              />
+
+                              <span className="text-xs">
+                                Active
+                              </span>
+
+                            </div>
+
+                            <ChevronRight
+                              size={18}
+                              className="text-slate-400"
+                            />
+
+                          </div>
+
                         </button>
+
+                        {/* Performance */}
+
+                        {canViewPerformance && (
+                          <div className="border-t border-slate-100 p-3">
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openPerformance(
+                                  student
+                                )
+                              }
+                              className="w-full rounded-lg bg-emerald-50 text-emerald-700 py-2.5 flex items-center justify-center gap-2 font-medium hover:bg-emerald-100 transition"
+                            >
+
+                              <ChartNoAxesColumnIncreasing
+                                size={
+                                  18
+                                }
+                              />
+
+                              View Performance
+
+                            </button>
+
+                          </div>
+                        )}
 
                       </div>
 
-                    </div>
-
+                    )
                   )
-                )
 
-              ) : (
+                ) : (
 
-                <div className="bg-white rounded-xl shadow-sm p-8 text-center text-slate-500">
-                  No students found.
-                </div>
+                  <div className="bg-white rounded-xl shadow-sm p-8 text-center text-slate-500">
+                    No students found.
+                  </div>
 
-              )}
+                )}
 
-            </div>
-          )}
+              </div>
+            )}
 
         </section>
 
       </main>
 
       <AdminBottomNavigation />
+
     </MobileLayout>
   );
 }

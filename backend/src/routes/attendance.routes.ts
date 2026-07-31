@@ -8,28 +8,65 @@ import {
 
 import {
   authenticate,
+  requireStudent,
+  requireAdminRole,
 } from "../middleware/auth.middleware.js";
 
 const router = Router();
 
-// Student's own attendance
+// =========================
+// STUDENT — OWN ATTENDANCE
+// =========================
+
 router.get(
   "/me",
   authenticate,
+  requireStudent,
   getMyAttendance
 );
 
-// All attendance - admin only
+// =========================
+// STAFF — VIEW ATTENDANCE
+// =========================
+
+// FACILITATOR
+// COORDINATOR
+// MENTOR
+// ADMIN
+//
+// Mentor can view attendance,
+// but cannot modify it.
+
 router.get(
   "/",
   authenticate,
+  requireAdminRole(
+    "FACILITATOR",
+    "COORDINATOR",
+    "MENTOR",
+    "ADMIN"
+  ),
   getAttendance
 );
 
-// Mark attendance - admin only
+// =========================
+// STAFF — MARK ATTENDANCE
+// =========================
+
+// COORDINATOR
+// ADMIN
+//
+// FACILITATOR and MENTOR
+// can view attendance,
+// but cannot modify it.
+
 router.post(
   "/",
   authenticate,
+  requireAdminRole(
+    "COORDINATOR",
+    "ADMIN"
+  ),
   markAttendance
 );
 

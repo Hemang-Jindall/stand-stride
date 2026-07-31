@@ -171,8 +171,54 @@ async function buildPerformanceResponse(
 }
 
 // =========================
+// HELPER
+// Check Mentor Assignment
+// =========================
+
+async function mentorCanAccessStudent(
+  adminId: string,
+  studentId: string
+) {
+  const mentor =
+    await prisma.mentor.findUnique({
+      where: {
+        adminId,
+      },
+
+      select: {
+        id: true,
+      },
+    });
+
+  if (!mentor) {
+    return false;
+  }
+
+  const student =
+    await prisma.student.findFirst({
+      where: {
+        id: studentId,
+        mentorId: mentor.id,
+      },
+
+      select: {
+        id: true,
+      },
+    });
+
+  return Boolean(student);
+}
+
+// =========================
 // GET STUDENT PERFORMANCE
-// Admin
+// Staff
+//
+// MENTOR:
+// Only assigned students.
+//
+// Other authorized staff:
+// Any student.
+//
 // GET /api/performance/:studentId
 // =========================
 
@@ -187,23 +233,49 @@ export async function getStudentPerformance(
     ) {
       return res.status(403).json({
         message:
-          "Admin access required",
+          "Staff access required",
       });
     }
 
-    const studentId =
+    const rawStudentId =
       req.params.studentId;
 
-    if (
-      typeof studentId !==
-        "string" ||
-      !studentId
-    ) {
+    const studentId =
+      Array.isArray(rawStudentId)
+        ? rawStudentId[0]
+        : rawStudentId;
+
+    if (!studentId) {
       return res.status(400).json({
         message:
           "Student ID is required",
       });
     }
+
+    // =========================
+    // MENTOR ACCESS CHECK
+    // =========================
+
+    if (
+      req.user.adminRole === "MENTOR"
+    ) {
+      const allowed =
+        await mentorCanAccessStudent(
+          req.user.id,
+          studentId
+        );
+
+      if (!allowed) {
+        return res.status(403).json({
+          message:
+            "You can only view performance for students assigned to you",
+        });
+      }
+    }
+
+    // =========================
+    // BUILD RESPONSE
+    // =========================
 
     const result =
       await buildPerformanceResponse(
@@ -236,6 +308,7 @@ export async function getStudentPerformance(
 // =========================
 // GET MY PERFORMANCE
 // Student
+//
 // GET /api/performance/me
 // =========================
 
@@ -284,7 +357,14 @@ export async function getMyPerformance(
 
 // =========================
 // UPDATE PERFORMANCE
-// Admin
+// Staff
+//
+// MENTOR:
+// Only assigned students.
+//
+// Other authorized staff:
+// Any student.
+//
 // PUT /api/performance/:studentId
 // =========================
 
@@ -299,22 +379,44 @@ export async function updatePerformance(
     ) {
       return res.status(403).json({
         message:
-          "Admin access required",
+          "Staff access required",
       });
     }
 
-    const studentId =
+    const rawStudentId =
       req.params.studentId;
 
-    if (
-      typeof studentId !==
-        "string" ||
-      !studentId
-    ) {
+    const studentId =
+      Array.isArray(rawStudentId)
+        ? rawStudentId[0]
+        : rawStudentId;
+
+    if (!studentId) {
       return res.status(400).json({
         message:
           "Student ID is required",
       });
+    }
+
+    // =========================
+    // MENTOR ACCESS CHECK
+    // =========================
+
+    if (
+      req.user.adminRole === "MENTOR"
+    ) {
+      const allowed =
+        await mentorCanAccessStudent(
+          req.user.id,
+          studentId
+        );
+
+      if (!allowed) {
+        return res.status(403).json({
+          message:
+            "You can only update performance for students assigned to you",
+        });
+      }
     }
 
     const {

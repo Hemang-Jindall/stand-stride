@@ -8,6 +8,7 @@ import type {
 
 // =========================
 // GET ALL BATCHES
+// Staff only
 // =========================
 
 export async function getBatches(
@@ -15,9 +16,13 @@ export async function getBatches(
   res: Response
 ) {
   try {
-    if (!req.user) {
-      return res.status(401).json({
-        message: "Authentication required",
+    if (
+      !req.user ||
+      req.user.role !== "admin"
+    ) {
+      return res.status(403).json({
+        message:
+          "Admin access required",
       });
     }
 
@@ -38,9 +43,9 @@ export async function getBatches(
         },
       });
 
-    return res.status(200).json(
-      batches
-    );
+    return res
+      .status(200)
+      .json(batches);
   } catch (error) {
     console.error(
       "GET BATCHES ERROR:",
@@ -56,7 +61,7 @@ export async function getBatches(
 
 // =========================
 // GET ALL VENUES
-// Admin
+// Staff only
 // =========================
 
 export async function getVenues(
@@ -89,9 +94,9 @@ export async function getVenues(
         },
       });
 
-    return res.status(200).json(
-      venues
-    );
+    return res
+      .status(200)
+      .json(venues);
   } catch (error) {
     console.error(
       "GET VENUES ERROR:",
@@ -107,7 +112,7 @@ export async function getVenues(
 
 // =========================
 // CREATE VENUE
-// Admin
+// ADMIN only via route
 // =========================
 
 export async function createVenue(
@@ -130,6 +135,10 @@ export async function createVenue(
       address,
     } = req.body;
 
+    // =========================
+    // Validate Name
+    // =========================
+
     if (
       typeof name !== "string" ||
       !name.trim()
@@ -140,23 +149,34 @@ export async function createVenue(
       });
     }
 
+    // =========================
+    // Clean Fields
+    // =========================
+
+    const cleanName =
+      name.trim();
+
+    const cleanAddress =
+      typeof address === "string" &&
+      address.trim()
+        ? address.trim()
+        : null;
+
+    // =========================
+    // Create Venue
+    // =========================
+
     const venue =
       await prisma.venue.create({
         data: {
-          name: name.trim(),
-
-          address:
-            typeof address ===
-              "string" &&
-            address.trim()
-              ? address.trim()
-              : null,
+          name: cleanName,
+          address: cleanAddress,
         },
       });
 
-    return res.status(201).json(
-      venue
-    );
+    return res
+      .status(201)
+      .json(venue);
   } catch (error) {
     console.error(
       "CREATE VENUE ERROR:",
@@ -172,7 +192,7 @@ export async function createVenue(
 
 // =========================
 // UPDATE BATCH VENUE
-// Admin
+// COORDINATOR + ADMIN via route
 // =========================
 
 export async function updateBatchVenue(
@@ -190,26 +210,36 @@ export async function updateBatchVenue(
       });
     }
 
-    const batchId =
+    // =========================
+    // Get Batch ID
+    // =========================
+
+    const rawBatchId =
       req.params.batchId;
 
-    const {
-      venueId,
-    } = req.body;
+    const batchId =
+      Array.isArray(rawBatchId)
+        ? rawBatchId[0]
+        : rawBatchId;
 
-    if (
-      typeof batchId !== "string" ||
-      !batchId
-    ) {
+    if (!batchId) {
       return res.status(400).json({
         message:
           "Invalid batch ID",
       });
     }
 
+    // =========================
+    // Get Venue ID
+    // =========================
+
+    const {
+      venueId,
+    } = req.body;
+
     if (
       typeof venueId !== "string" ||
-      !venueId
+      !venueId.trim()
     ) {
       return res.status(400).json({
         message:
@@ -217,10 +247,21 @@ export async function updateBatchVenue(
       });
     }
 
+    const cleanVenueId =
+      venueId.trim();
+
+    // =========================
+    // Check Batch
+    // =========================
+
     const batch =
       await prisma.batch.findUnique({
         where: {
           id: batchId,
+        },
+
+        select: {
+          id: true,
         },
       });
 
@@ -231,10 +272,18 @@ export async function updateBatchVenue(
       });
     }
 
+    // =========================
+    // Check Venue
+    // =========================
+
     const venue =
       await prisma.venue.findUnique({
         where: {
-          id: venueId,
+          id: cleanVenueId,
+        },
+
+        select: {
+          id: true,
         },
       });
 
@@ -245,6 +294,10 @@ export async function updateBatchVenue(
       });
     }
 
+    // =========================
+    // Update Assignment
+    // =========================
+
     const updatedBatch =
       await prisma.batch.update({
         where: {
@@ -252,7 +305,7 @@ export async function updateBatchVenue(
         },
 
         data: {
-          venueId,
+          venueId: cleanVenueId,
         },
 
         include: {
@@ -266,9 +319,9 @@ export async function updateBatchVenue(
         },
       });
 
-    return res.status(200).json(
-      updatedBatch
-    );
+    return res
+      .status(200)
+      .json(updatedBatch);
   } catch (error) {
     console.error(
       "UPDATE BATCH VENUE ERROR:",

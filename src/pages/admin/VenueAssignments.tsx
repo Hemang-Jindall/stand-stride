@@ -4,11 +4,19 @@ import {
   useState,
 } from "react";
 
+import {
+  useNavigate,
+} from "react-router-dom";
+
 import MobileLayout from "../../layouts/MobileLayout";
 import Header from "../../components/Header";
 import AdminBottomNavigation from "../../components/AdminBottomNavigation";
 
 import api from "../../api/api";
+
+import {
+  hasPermission,
+} from "../../utils/permissions";
 
 import {
   MapPinned,
@@ -17,6 +25,10 @@ import {
   Users,
   X,
 } from "lucide-react";
+
+// =========================
+// Types
+// =========================
 
 interface Venue {
   id: string;
@@ -33,20 +45,27 @@ interface Batch {
   name: string;
   startDate: string;
   endDate: string;
-  venueId: string;
+  venueId: string | null;
 
   venue: {
     id: string;
     name: string;
     address: string | null;
-  };
+  } | null;
 
   _count?: {
     students: number;
   };
 }
 
+// =========================
+// Component
+// =========================
+
 export default function VenueAssignments() {
+  const navigate =
+    useNavigate();
+
   const [venues, setVenues] =
     useState<Venue[]>([]);
 
@@ -62,7 +81,9 @@ export default function VenueAssignments() {
   const [
     savingBatchId,
     setSavingBatchId,
-  ] = useState<string | null>(null);
+  ] = useState<
+    string | null
+  >(null);
 
   const [
     showAddVenue,
@@ -74,28 +95,92 @@ export default function VenueAssignments() {
     setCreatingVenue,
   ] = useState(false);
 
-  const [venueForm, setVenueForm] =
-    useState({
-      name: "",
-      address: "",
-    });
+  const [
+    venueForm,
+    setVenueForm,
+  ] = useState({
+    name: "",
+    address: "",
+  });
 
   // =========================
-  // AUTH
+  // Permissions
   // =========================
 
-  function getAuthHeaders() {
-    const token =
-      localStorage.getItem("token");
+  const canViewVenues =
+    hasPermission(
+      "VIEW_VENUES"
+    );
 
-    return {
-      Authorization:
-        `Bearer ${token}`,
-    };
-  }
+  const canAssignVenues =
+    hasPermission(
+      "ASSIGN_VENUES"
+    );
+
+  const canCreateVenues =
+    hasPermission(
+      "CREATE_VENUES"
+    );
 
   // =========================
-  // LOAD DATA
+  // Clear Session
+  // =========================
+
+  const clearSession =
+    useCallback(() => {
+      localStorage.removeItem(
+        "token"
+      );
+
+      localStorage.removeItem(
+        "admin"
+      );
+
+      localStorage.removeItem(
+        "student"
+      );
+
+      localStorage.removeItem(
+        "role"
+      );
+
+      localStorage.removeItem(
+        "adminRole"
+      );
+
+      navigate(
+        "/login",
+        {
+          replace: true,
+        }
+      );
+    }, [navigate]);
+
+  // =========================
+  // Auth Headers
+  // =========================
+
+  const getAuthHeaders =
+    useCallback(() => {
+      const token =
+        localStorage.getItem(
+          "token"
+        );
+
+      if (!token) {
+        clearSession();
+
+        return null;
+      }
+
+      return {
+        Authorization:
+          `Bearer ${token}`,
+      };
+    }, [clearSession]);
+
+  // =========================
+  // Load Data
   // =========================
 
   const loadData =
@@ -109,13 +194,35 @@ export default function VenueAssignments() {
             "token"
           );
 
-        if (!token) {
-          setError(
-            "You are not logged in."
+        const role =
+          localStorage.getItem(
+            "role"
+          );
+
+        if (
+          !token ||
+          role !== "admin"
+        ) {
+          clearSession();
+
+          return;
+        }
+
+        if (!canViewVenues) {
+          navigate(
+            "/admin/dashboard",
+            {
+              replace: true,
+            }
           );
 
           return;
         }
+
+        const headers = {
+          Authorization:
+            `Bearer ${token}`,
+        };
 
         const [
           batchesResponse,
@@ -124,20 +231,14 @@ export default function VenueAssignments() {
           api.get(
             "/batches",
             {
-              headers: {
-                Authorization:
-                  `Bearer ${token}`,
-              },
+              headers,
             }
           ),
 
           api.get(
             "/batches/venues",
             {
-              headers: {
-                Authorization:
-                  `Bearer ${token}`,
-              },
+              headers,
             }
           ),
         ]);
@@ -155,6 +256,29 @@ export default function VenueAssignments() {
           error
         );
 
+        if (
+          error.response?.status ===
+          401
+        ) {
+          clearSession();
+
+          return;
+        }
+
+        if (
+          error.response?.status ===
+          403
+        ) {
+          navigate(
+            "/admin/dashboard",
+            {
+              replace: true,
+            }
+          );
+
+          return;
+        }
+
         setError(
           error.response?.data
             ?.message ??
@@ -163,28 +287,49 @@ export default function VenueAssignments() {
       } finally {
         setLoading(false);
       }
-    }, []);
+    }, [
+      canViewVenues,
+      clearSession,
+      navigate,
+    ]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
   // =========================
-  // CREATE VENUE
+  // Create Venue
   // =========================
 
   async function createVenue() {
+    if (!canCreateVenues) {
+      setError(
+        "You do not have permission to create venues."
+      );
+
+      return;
+    }
+
+    if (
+      !venueForm.name.trim()
+    ) {
+      setError(
+        "Venue name is required."
+      );
+
+      return;
+    }
+
     try {
-      if (!venueForm.name.trim()) {
-        setError(
-          "Venue name is required."
-        );
-
-        return;
-      }
-
       setCreatingVenue(true);
       setError("");
+
+      const headers =
+        getAuthHeaders();
+
+      if (!headers) {
+        return;
+      }
 
       await api.post(
         "/batches/venues",
@@ -193,12 +338,12 @@ export default function VenueAssignments() {
             venueForm.name.trim(),
 
           address:
-            venueForm.address.trim() ||
+            venueForm.address
+              .trim() ||
             null,
         },
         {
-          headers:
-            getAuthHeaders(),
+          headers,
         }
       );
 
@@ -216,6 +361,26 @@ export default function VenueAssignments() {
         error
       );
 
+      if (
+        error.response?.status ===
+        401
+      ) {
+        clearSession();
+
+        return;
+      }
+
+      if (
+        error.response?.status ===
+        403
+      ) {
+        setError(
+          "You do not have permission to create venues."
+        );
+
+        return;
+      }
+
       setError(
         error.response?.data
           ?.message ??
@@ -227,16 +392,38 @@ export default function VenueAssignments() {
   }
 
   // =========================
-  // UPDATE BATCH VENUE
+  // Update Batch Venue
   // =========================
 
   async function updateVenue(
     batchId: string,
     venueId: string
   ) {
+    if (!canAssignVenues) {
+      setError(
+        "You do not have permission to assign venues."
+      );
+
+      return;
+    }
+
+    if (!venueId) {
+      return;
+    }
+
     try {
-      setSavingBatchId(batchId);
+      setSavingBatchId(
+        batchId
+      );
+
       setError("");
+
+      const headers =
+        getAuthHeaders();
+
+      if (!headers) {
+        return;
+      }
 
       await api.put(
         `/batches/${batchId}/venue`,
@@ -244,8 +431,7 @@ export default function VenueAssignments() {
           venueId,
         },
         {
-          headers:
-            getAuthHeaders(),
+          headers,
         }
       );
 
@@ -255,6 +441,26 @@ export default function VenueAssignments() {
         "UPDATE VENUE ERROR:",
         error
       );
+
+      if (
+        error.response?.status ===
+        401
+      ) {
+        clearSession();
+
+        return;
+      }
+
+      if (
+        error.response?.status ===
+        403
+      ) {
+        setError(
+          "You do not have permission to assign venues."
+        );
+
+        return;
+      }
 
       setError(
         error.response?.data
@@ -267,7 +473,7 @@ export default function VenueAssignments() {
   }
 
   // =========================
-  // DATE
+  // Date
   // =========================
 
   function formatDate(
@@ -291,13 +497,16 @@ export default function VenueAssignments() {
 
   return (
     <MobileLayout>
+
       <Header />
 
       <main className="flex-1 py-4 overflow-y-auto">
 
         <section className="mx-5">
 
-          {/* Heading */}
+          {/* =========================
+              Heading
+          ========================= */}
 
           <div className="flex items-center justify-between gap-3 mb-5">
 
@@ -314,30 +523,53 @@ export default function VenueAssignments() {
 
             </div>
 
-            <button
-              type="button"
-              onClick={() =>
-                setShowAddVenue(true)
-              }
-              className="bg-emerald-600 text-white rounded-lg p-2"
-              title="Add venue"
-            >
-              <Plus size={20} />
-            </button>
+            {/* Only ADMIN currently has
+                CREATE_VENUES */}
+
+            {canCreateVenues && (
+
+              <button
+                type="button"
+                onClick={() => {
+                  setError("");
+
+                  setShowAddVenue(
+                    true
+                  );
+                }}
+                className="bg-emerald-600 text-white rounded-lg p-2"
+                title="Add venue"
+              >
+
+                <Plus size={20} />
+
+              </button>
+
+            )}
 
           </div>
 
-          {/* Error */}
+          {/* =========================
+              Error
+          ========================= */}
 
           {error && (
+
             <div className="bg-red-50 text-red-600 rounded-xl p-4 mb-4">
+
               {error}
+
             </div>
+
           )}
 
-          {/* Add Venue */}
+          {/* =========================
+              Add Venue
+          ========================= */}
 
-          {showAddVenue && (
+          {showAddVenue &&
+            canCreateVenues && (
+
             <div className="bg-white rounded-xl shadow-sm p-4 mb-5">
 
               <div className="flex items-center justify-between mb-4">
@@ -348,19 +580,33 @@ export default function VenueAssignments() {
 
                 <button
                   type="button"
-                  onClick={() =>
+                  disabled={
+                    creatingVenue
+                  }
+                  onClick={() => {
                     setShowAddVenue(
                       false
-                    )
-                  }
-                  className="text-slate-500"
+                    );
+
+                    setVenueForm({
+                      name: "",
+                      address: "",
+                    });
+
+                    setError("");
+                  }}
+                  className="text-slate-500 disabled:opacity-50"
                 >
+
                   <X size={20} />
+
                 </button>
 
               </div>
 
               <div className="space-y-3">
+
+                {/* Venue Name */}
 
                 <input
                   type="text"
@@ -368,31 +614,49 @@ export default function VenueAssignments() {
                   value={
                     venueForm.name
                   }
-                  onChange={(e) =>
-                    setVenueForm({
-                      ...venueForm,
-                      name:
-                        e.target.value,
-                    })
+                  disabled={
+                    creatingVenue
                   }
-                  className="w-full border rounded-lg p-3 outline-none focus:border-emerald-600"
+                  onChange={(e) =>
+                    setVenueForm(
+                      (current) => ({
+                        ...current,
+
+                        name:
+                          e.target
+                            .value,
+                      })
+                    )
+                  }
+                  className="w-full border rounded-lg p-3 outline-none focus:border-emerald-600 disabled:bg-slate-100"
                 />
+
+                {/* Address */}
 
                 <textarea
                   placeholder="Address (optional)"
                   value={
                     venueForm.address
                   }
-                  onChange={(e) =>
-                    setVenueForm({
-                      ...venueForm,
-                      address:
-                        e.target.value,
-                    })
+                  disabled={
+                    creatingVenue
                   }
-                  className="w-full border rounded-lg p-3 outline-none focus:border-emerald-600 resize-none"
+                  onChange={(e) =>
+                    setVenueForm(
+                      (current) => ({
+                        ...current,
+
+                        address:
+                          e.target
+                            .value,
+                      })
+                    )
+                  }
+                  className="w-full border rounded-lg p-3 outline-none focus:border-emerald-600 resize-none disabled:bg-slate-100"
                   rows={3}
                 />
+
+                {/* Create */}
 
                 <button
                   type="button"
@@ -404,162 +668,203 @@ export default function VenueAssignments() {
                   }
                   className="w-full bg-emerald-600 text-white rounded-lg py-3 disabled:opacity-50"
                 >
+
                   {creatingVenue
                     ? "Adding..."
                     : "Add Venue"}
+
                 </button>
 
               </div>
 
             </div>
+
           )}
 
-          {/* Loading */}
+          {/* =========================
+              Loading
+          ========================= */}
 
           {loading && (
+
             <div className="bg-white rounded-xl shadow-sm p-8 text-center text-slate-500">
+
               Loading venue assignments...
+
             </div>
+
           )}
 
-          {/* No Venues */}
+          {/* =========================
+              No Venues
+          ========================= */}
 
           {!loading &&
             venues.length === 0 && (
-              <div className="bg-amber-50 text-amber-700 rounded-xl p-4 mb-4">
 
-                No venues found. Add a
-                venue before assigning
-                batches.
+            <div className="bg-amber-50 text-amber-700 rounded-xl p-4 mb-4">
 
-              </div>
-            )}
+              {canCreateVenues
+                ? "No venues found. Add a venue before assigning batches."
+                : "No venues have been created yet."}
 
-          {/* No Batches */}
+            </div>
+
+          )}
+
+          {/* =========================
+              No Batches
+          ========================= */}
 
           {!loading &&
             batches.length === 0 && (
-              <div className="bg-white rounded-xl shadow-sm p-8 text-center">
 
-                <MapPinned
-                  size={32}
-                  className="mx-auto text-slate-400"
-                />
+            <div className="bg-white rounded-xl shadow-sm p-8 text-center">
 
-                <p className="font-medium mt-3">
-                  No batches found
-                </p>
+              <MapPinned
+                size={32}
+                className="mx-auto text-slate-400"
+              />
 
-                <p className="text-sm text-slate-500 mt-1">
-                  Create a batch before
-                  assigning venues.
-                </p>
+              <p className="font-medium mt-3">
+                No batches found
+              </p>
 
-              </div>
-            )}
+              <p className="text-sm text-slate-500 mt-1">
+                Create a batch before assigning venues.
+              </p>
 
-          {/* Batches */}
+            </div>
+
+          )}
+
+          {/* =========================
+              Batches
+          ========================= */}
 
           {!loading &&
             batches.length > 0 && (
-              <div className="space-y-3">
 
-                {batches.map(
-                  (batch) => (
-                    <div
-                      key={batch.id}
-                      className="bg-white rounded-xl shadow-sm p-4"
-                    >
+            <div className="space-y-3">
 
-                      {/* Batch */}
+              {batches.map(
+                (batch) => (
 
-                      <div className="flex items-start justify-between gap-3">
+                  <div
+                    key={
+                      batch.id
+                    }
+                    className="bg-white rounded-xl shadow-sm p-4"
+                  >
 
-                        <div>
+                    {/* Batch */}
 
-                          <h2 className="font-semibold text-lg">
-                            {batch.name}
-                          </h2>
+                    <div className="flex items-start justify-between gap-3">
 
-                          <p className="text-sm text-slate-500 mt-1">
-                            {formatDate(
-                              batch.startDate
-                            )}
-                            {" – "}
-                            {formatDate(
-                              batch.endDate
-                            )}
-                          </p>
+                      <div>
+
+                        <h2 className="font-semibold text-lg">
+                          {batch.name}
+                        </h2>
+
+                        <p className="text-sm text-slate-500 mt-1">
+
+                          {formatDate(
+                            batch.startDate
+                          )}
+
+                          {" – "}
+
+                          {formatDate(
+                            batch.endDate
+                          )}
+
+                        </p>
+
+                      </div>
+
+                      {batch._count && (
+
+                        <div className="flex items-center gap-1 text-sm text-slate-500">
+
+                          <Users
+                            size={16}
+                          />
+
+                          <span>
+                            {
+                              batch
+                                ._count
+                                .students
+                            }
+                          </span>
 
                         </div>
 
-                        {batch._count && (
-                          <div className="flex items-center gap-1 text-sm text-slate-500">
+                      )}
 
-                            <Users
-                              size={16}
-                            />
+                    </div>
 
-                            <span>
-                              {
-                                batch
-                                  ._count
-                                  .students
-                              }
-                            </span>
+                    {/* =========================
+                        Current Venue
+                    ========================= */}
 
-                          </div>
+                    <div className="flex items-start gap-2 mt-4 bg-slate-50 rounded-lg p-3">
+
+                      <MapPin
+                        size={18}
+                        className="text-emerald-600 mt-0.5 shrink-0"
+                      />
+
+                      <div>
+
+                        <p className="text-xs text-slate-500">
+                          Current Venue
+                        </p>
+
+                        <p className="font-medium">
+
+                          {batch.venue
+                            ?.name ??
+                            "Not assigned"}
+
+                        </p>
+
+                        {batch.venue
+                          ?.address && (
+
+                          <p className="text-xs text-slate-500 mt-1">
+
+                            {
+                              batch
+                                .venue
+                                .address
+                            }
+
+                          </p>
+
                         )}
 
                       </div>
 
-                      {/* Current Venue */}
+                    </div>
 
-                      <div className="flex items-start gap-2 mt-4 bg-slate-50 rounded-lg p-3">
+                    {/* =========================
+                        Assignment
+                    ========================= */}
 
-                        <MapPin
-                          size={18}
-                          className="text-emerald-600 mt-0.5 shrink-0"
-                        />
+                    <div className="mt-4">
 
-                        <div>
+                      <label className="text-sm text-slate-500">
+                        Venue Assignment
+                      </label>
 
-                          <p className="text-xs text-slate-500">
-                            Current Venue
-                          </p>
-
-                          <p className="font-medium">
-                            {batch.venue
-                              ?.name ??
-                              "Not assigned"}
-                          </p>
-
-                          {batch.venue
-                            ?.address && (
-                            <p className="text-xs text-slate-500 mt-1">
-                              {
-                                batch
-                                  .venue
-                                  .address
-                              }
-                            </p>
-                          )}
-
-                        </div>
-
-                      </div>
-
-                      {/* Select */}
-
-                      <div className="mt-4">
-
-                        <label className="text-sm text-slate-500">
-                          Assign Venue
-                        </label>
+                      {canAssignVenues ? (
 
                         <select
                           value={
-                            batch.venueId
+                            batch.venueId ??
+                            ""
                           }
                           disabled={
                             savingBatchId ===
@@ -570,15 +875,35 @@ export default function VenueAssignments() {
                           onChange={(e) =>
                             updateVenue(
                               batch.id,
-                              e.target
-                                .value
+                              e.target.value
                             )
                           }
                           className="w-full border rounded-lg p-3 mt-1 bg-white disabled:opacity-50"
                         >
 
+                          {!batch.venueId && (
+
+                            <option
+                              value=""
+                              disabled
+                            >
+                              Select venue
+                            </option>
+
+                          )}
+
+                          {venues.length ===
+                            0 && (
+
+                            <option value="">
+                              No venues available
+                            </option>
+
+                          )}
+
                           {venues.map(
                             (venue) => (
+
                               <option
                                 key={
                                   venue.id
@@ -587,36 +912,56 @@ export default function VenueAssignments() {
                                   venue.id
                                 }
                               >
+
                                 {
                                   venue.name
                                 }
+
                               </option>
+
                             )
                           )}
 
                         </select>
 
-                        {savingBatchId ===
-                          batch.id && (
-                          <p className="text-xs text-slate-500 mt-2">
-                            Saving...
-                          </p>
-                        )}
+                      ) : (
 
-                      </div>
+                        <div className="w-full border border-slate-200 rounded-lg p-3 mt-1 bg-slate-50 text-slate-700">
+
+                          {batch.venue
+                            ?.name ??
+                            "Not assigned"}
+
+                        </div>
+
+                      )}
+
+                      {savingBatchId ===
+                        batch.id && (
+
+                        <p className="text-xs text-slate-500 mt-2">
+                          Saving...
+                        </p>
+
+                      )}
 
                     </div>
-                  )
-                )}
 
-              </div>
-            )}
+                  </div>
+
+                )
+              )}
+
+            </div>
+
+          )}
 
         </section>
 
       </main>
 
       <AdminBottomNavigation />
+
     </MobileLayout>
   );
 }

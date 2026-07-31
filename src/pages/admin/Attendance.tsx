@@ -13,6 +13,10 @@ import AdminBottomNavigation from "../../components/AdminBottomNavigation";
 import api from "../../api/api";
 
 import {
+  hasPermission,
+} from "../../utils/permissions";
+
+import {
   CalendarDays,
   CircleCheck,
   CircleX,
@@ -64,61 +68,98 @@ export default function AdminAttendance() {
   const [loading, setLoading] =
     useState(true);
 
-  const [savingStudentId, setSavingStudentId] =
-    useState<string | null>(null);
+  const [
+    savingStudentId,
+    setSavingStudentId,
+  ] = useState<string | null>(
+    null
+  );
 
   const [error, setError] =
     useState("");
 
   // =========================
+  // Permissions
+  // =========================
+
+  const canManageAttendance =
+    hasPermission(
+      "MANAGE_ATTENDANCE"
+    );
+
+  // =========================
   // Load students + attendance
   // =========================
 
-  const loadData = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError("");
+  const loadData =
+    useCallback(
+      async () => {
+        try {
+          setLoading(true);
+          setError("");
 
-      const token =
-        localStorage.getItem("token");
+          const token =
+            localStorage.getItem(
+              "token"
+            );
 
-      if (!token) {
-        navigate("/login");
-        return;
-      }
+          if (!token) {
+            navigate(
+              "/login",
+              {
+                replace: true,
+              }
+            );
 
-      const headers = {
-        Authorization: `Bearer ${token}`,
-      };
+            return;
+          }
 
-      const [
-        studentsResponse,
-        attendanceResponse,
-      ] = await Promise.all([
-        api.get("/students", {
-          headers,
-        }),
+          const headers = {
+            Authorization:
+              `Bearer ${token}`,
+          };
 
-        api.get("/attendance", {
-          headers,
-        }),
-      ]);
+          const [
+            studentsResponse,
+            attendanceResponse,
+          ] = await Promise.all([
+            api.get(
+              "/students",
+              {
+                headers,
+              }
+            ),
 
-      setStudents(studentsResponse.data);
-      setAttendance(attendanceResponse.data);
-    } catch (error) {
-      console.error(
-        "LOAD ATTENDANCE ERROR:",
-        error
-      );
+            api.get(
+              "/attendance",
+              {
+                headers,
+              }
+            ),
+          ]);
 
-      setError(
-        "Failed to load attendance."
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [navigate]);
+          setStudents(
+            studentsResponse.data
+          );
+
+          setAttendance(
+            attendanceResponse.data
+          );
+        } catch (error) {
+          console.error(
+            "LOAD ATTENDANCE ERROR:",
+            error
+          );
+
+          setError(
+            "Failed to load attendance."
+          );
+        } finally {
+          setLoading(false);
+        }
+      },
+      [navigate]
+    );
 
   useEffect(() => {
     loadData();
@@ -131,14 +172,20 @@ export default function AdminAttendance() {
   function getStatus(
     studentId: string
   ): AttendanceStatus | null {
-    const record = attendance.find(
-      (item) =>
-        item.studentId === studentId &&
-        item.date.split("T")[0] ===
-          selectedDate
-    );
+    const record =
+      attendance.find(
+        (item) =>
+          item.studentId ===
+            studentId &&
+          item.date.split(
+            "T"
+          )[0] ===
+            selectedDate
+      );
 
-    return record?.status ?? null;
+    return (
+      record?.status ?? null
+    );
   }
 
   // =========================
@@ -149,52 +196,75 @@ export default function AdminAttendance() {
     studentId: string,
     status: AttendanceStatus
   ) {
+    // UI protection.
+    // Backend permissions should also
+    // protect POST /attendance.
+    if (!canManageAttendance) {
+      return;
+    }
+
     try {
-      setSavingStudentId(studentId);
+      setSavingStudentId(
+        studentId
+      );
+
       setError("");
 
       const token =
-        localStorage.getItem("token");
+        localStorage.getItem(
+          "token"
+        );
 
       if (!token) {
-        navigate("/login");
+        navigate(
+          "/login",
+          {
+            replace: true,
+          }
+        );
+
         return;
       }
 
-      const response = await api.post(
-        "/attendance",
-        {
-          studentId,
-          date: selectedDate,
-          status,
-        },
-        {
-          headers: {
-            Authorization:
-              `Bearer ${token}`,
+      const response =
+        await api.post(
+          "/attendance",
+          {
+            studentId,
+            date: selectedDate,
+            status,
           },
-        }
-      );
+          {
+            headers: {
+              Authorization:
+                `Bearer ${token}`,
+            },
+          }
+        );
 
       const savedRecord =
         response.data as AttendanceRecord;
 
-      // Replace the attendance entry for
-      // this student + date in local state.
+      // Replace the record for this
+      // student + date in local state.
 
-      setAttendance((current) => [
-        ...current.filter(
-          (item) =>
-            !(
-              item.studentId ===
-                studentId &&
-              item.date.split("T")[0] ===
-                selectedDate
-            )
-        ),
+      setAttendance(
+        (current) => [
+          ...current.filter(
+            (item) =>
+              !(
+                item.studentId ===
+                  studentId &&
+                item.date.split(
+                  "T"
+                )[0] ===
+                  selectedDate
+              )
+          ),
 
-        savedRecord,
-      ]);
+          savedRecord,
+        ]
+      );
     } catch (error) {
       console.error(
         "MARK ATTENDANCE ERROR:",
@@ -205,28 +275,102 @@ export default function AdminAttendance() {
         "Failed to save attendance."
       );
     } finally {
-      setSavingStudentId(null);
+      setSavingStudentId(
+        null
+      );
     }
   }
 
+  // =========================
+  // Status display
+  // =========================
+
+  function renderStatus(
+    status: AttendanceStatus | null
+  ) {
+    if (
+      status === "PRESENT"
+    ) {
+      return (
+        <div className="flex items-center gap-2 text-emerald-600 font-medium">
+
+          <CircleCheck
+            size={18}
+          />
+
+          Present
+
+        </div>
+      );
+    }
+
+    if (
+      status === "ABSENT"
+    ) {
+      return (
+        <div className="flex items-center gap-2 text-red-500 font-medium">
+
+          <CircleX
+            size={18}
+          />
+
+          Absent
+
+        </div>
+      );
+    }
+
+    if (
+      status === "LEAVE"
+    ) {
+      return (
+        <div className="flex items-center gap-2 text-amber-600 font-medium">
+
+          <Clock
+            size={18}
+          />
+
+          Leave
+
+        </div>
+      );
+    }
+
+    return (
+      <p className="text-sm text-slate-400">
+        Not marked
+      </p>
+    );
+  }
+
+  // =========================
+  // UI
+  // =========================
+
   return (
     <MobileLayout>
+
       <Header />
 
       <main className="flex-1 py-4 overflow-y-auto">
+
         <section className="mx-5">
 
           <h1 className="text-2xl font-bold mb-5">
             Attendance
           </h1>
 
-          {/* Date selector */}
+          {/* =========================
+              Date Selector
+          ========================= */}
 
           <div className="bg-white rounded-xl shadow-sm p-4 mb-5">
 
             <label className="flex items-center gap-2 text-sm font-medium text-slate-600 mb-2">
 
-              <CalendarDays size={18} />
+              <CalendarDays
+                size={18}
+              />
 
               Select Date
 
@@ -234,7 +378,9 @@ export default function AdminAttendance() {
 
             <input
               type="date"
-              value={selectedDate}
+              value={
+                selectedDate
+              }
               onChange={(e) =>
                 setSelectedDate(
                   e.target.value
@@ -245,7 +391,9 @@ export default function AdminAttendance() {
 
           </div>
 
-          {/* Error */}
+          {/* =========================
+              Error
+          ========================= */}
 
           {error && (
             <div className="bg-red-50 text-red-600 rounded-xl p-4 mb-4 text-sm">
@@ -253,7 +401,9 @@ export default function AdminAttendance() {
             </div>
           )}
 
-          {/* Loading */}
+          {/* =========================
+              Loading
+          ========================= */}
 
           {loading && (
             <div className="bg-white rounded-xl shadow-sm p-8 text-center text-slate-500">
@@ -261,134 +411,200 @@ export default function AdminAttendance() {
             </div>
           )}
 
-          {/* Student list */}
+          {/* =========================
+              Student List
+          ========================= */}
 
           {!loading && (
             <div className="space-y-3">
 
-              {students.map((student) => {
-                const status =
-                  getStatus(student.id);
+              {students.map(
+                (student) => {
+                  const status =
+                    getStatus(
+                      student.id
+                    );
 
-                const saving =
-                  savingStudentId ===
-                  student.id;
+                  const saving =
+                    savingStudentId ===
+                    student.id;
 
-                return (
-                  <div
-                    key={student.id}
-                    className="bg-white rounded-xl shadow-sm p-4"
-                  >
+                  return (
+                    <div
+                      key={
+                        student.id
+                      }
+                      className="bg-white rounded-xl shadow-sm p-4"
+                    >
 
-                    {/* Student info */}
+                      {/* Student Info */}
 
-                    <div className="mb-3">
+                      <div
+                        className={
+                          canManageAttendance
+                            ? "mb-3"
+                            : ""
+                        }
+                      >
 
-                      <h3 className="font-semibold">
-                        {student.firstName}{" "}
-                        {student.lastName}
-                      </h3>
+                        <h3 className="font-semibold">
+                          {
+                            student.firstName
+                          }{" "}
+                          {
+                            student.lastName
+                          }
+                        </h3>
 
-                      <p className="text-sm text-slate-500">
-                        {student.rollNumber}
-                        {" • "}
-                        {student.batch?.name ??
-                          "No Batch"}
-                      </p>
+                        <p className="text-sm text-slate-500">
+                          {
+                            student.rollNumber
+                          }
+
+                          {" • "}
+
+                          {student
+                            .batch
+                            ?.name ??
+                            "No Batch"}
+                        </p>
+
+                      </div>
+
+                      {/* =========================
+                          Manage Attendance
+                      ========================= */}
+
+                      {canManageAttendance ? (
+
+                        <div className="grid grid-cols-3 gap-2">
+
+                          {/* Present */}
+
+                          <button
+                            type="button"
+                            disabled={
+                              saving
+                            }
+                            onClick={() =>
+                              markAttendance(
+                                student.id,
+                                "PRESENT"
+                              )
+                            }
+                            className={`rounded-lg py-2 flex items-center justify-center gap-1 text-sm font-medium transition disabled:opacity-50 ${
+                              status ===
+                              "PRESENT"
+                                ? "bg-emerald-600 text-white"
+                                : "bg-slate-100 text-slate-600"
+                            }`}
+                          >
+
+                            <CircleCheck
+                              size={
+                                16
+                              }
+                            />
+
+                            Present
+
+                          </button>
+
+                          {/* Absent */}
+
+                          <button
+                            type="button"
+                            disabled={
+                              saving
+                            }
+                            onClick={() =>
+                              markAttendance(
+                                student.id,
+                                "ABSENT"
+                              )
+                            }
+                            className={`rounded-lg py-2 flex items-center justify-center gap-1 text-sm font-medium transition disabled:opacity-50 ${
+                              status ===
+                              "ABSENT"
+                                ? "bg-red-500 text-white"
+                                : "bg-slate-100 text-slate-600"
+                            }`}
+                          >
+
+                            <CircleX
+                              size={
+                                16
+                              }
+                            />
+
+                            Absent
+
+                          </button>
+
+                          {/* Leave */}
+
+                          <button
+                            type="button"
+                            disabled={
+                              saving
+                            }
+                            onClick={() =>
+                              markAttendance(
+                                student.id,
+                                "LEAVE"
+                              )
+                            }
+                            className={`rounded-lg py-2 flex items-center justify-center gap-1 text-sm font-medium transition disabled:opacity-50 ${
+                              status ===
+                              "LEAVE"
+                                ? "bg-amber-500 text-white"
+                                : "bg-slate-100 text-slate-600"
+                            }`}
+                          >
+
+                            <Clock
+                              size={
+                                16
+                              }
+                            />
+
+                            Leave
+
+                          </button>
+
+                        </div>
+
+                      ) : (
+
+                        /* =========================
+                           Read-Only Attendance
+                        ========================= */
+
+                        <div className="mt-3 pt-3 border-t border-slate-100">
+
+                          {renderStatus(
+                            status
+                          )}
+
+                        </div>
+
+                      )}
+
+                      {saving && (
+                        <p className="text-xs text-slate-400 mt-2">
+                          Saving...
+                        </p>
+                      )}
 
                     </div>
+                  );
+                }
+              )}
 
-                    {/* Attendance buttons */}
+              {/* No Students */}
 
-                    <div className="grid grid-cols-3 gap-2">
-
-                      {/* PRESENT */}
-
-                      <button
-                        type="button"
-                        disabled={saving}
-                        onClick={() =>
-                          markAttendance(
-                            student.id,
-                            "PRESENT"
-                          )
-                        }
-                        className={`rounded-lg py-2 flex items-center justify-center gap-1 text-sm font-medium transition disabled:opacity-50 ${
-                          status === "PRESENT"
-                            ? "bg-emerald-600 text-white"
-                            : "bg-slate-100 text-slate-600"
-                        }`}
-                      >
-
-                        <CircleCheck
-                          size={16}
-                        />
-
-                        Present
-
-                      </button>
-
-                      {/* ABSENT */}
-
-                      <button
-                        type="button"
-                        disabled={saving}
-                        onClick={() =>
-                          markAttendance(
-                            student.id,
-                            "ABSENT"
-                          )
-                        }
-                        className={`rounded-lg py-2 flex items-center justify-center gap-1 text-sm font-medium transition disabled:opacity-50 ${
-                          status === "ABSENT"
-                            ? "bg-red-500 text-white"
-                            : "bg-slate-100 text-slate-600"
-                        }`}
-                      >
-
-                        <CircleX size={16} />
-
-                        Absent
-
-                      </button>
-
-                      {/* LEAVE */}
-
-                      <button
-                        type="button"
-                        disabled={saving}
-                        onClick={() =>
-                          markAttendance(
-                            student.id,
-                            "LEAVE"
-                          )
-                        }
-                        className={`rounded-lg py-2 flex items-center justify-center gap-1 text-sm font-medium transition disabled:opacity-50 ${
-                          status === "LEAVE"
-                            ? "bg-amber-500 text-white"
-                            : "bg-slate-100 text-slate-600"
-                        }`}
-                      >
-
-                        <Clock size={16} />
-
-                        Leave
-
-                      </button>
-
-                    </div>
-
-                    {saving && (
-                      <p className="text-xs text-slate-400 mt-2">
-                        Saving...
-                      </p>
-                    )}
-
-                  </div>
-                );
-              })}
-
-              {students.length === 0 && (
+              {students.length ===
+                0 && (
                 <div className="bg-white rounded-xl shadow-sm p-8 text-center text-slate-500">
                   No students found.
                 </div>
@@ -398,9 +614,11 @@ export default function AdminAttendance() {
           )}
 
         </section>
+
       </main>
 
       <AdminBottomNavigation />
+
     </MobileLayout>
   );
 }

@@ -11,10 +11,18 @@ import AdminBottomNavigation from "../../components/AdminBottomNavigation";
 import api from "../../api/api";
 
 import {
+  hasPermission,
+} from "../../utils/permissions";
+
+import {
   UserCheck,
   UserPlus,
   X,
 } from "lucide-react";
+
+// =========================
+// Types
+// =========================
 
 interface Mentor {
   id: string;
@@ -48,6 +56,10 @@ interface Student {
   } | null;
 }
 
+// =========================
+// Component
+// =========================
+
 export default function MentorAssignments() {
   const [mentors, setMentors] =
     useState<Mentor[]>([]);
@@ -61,37 +73,64 @@ export default function MentorAssignments() {
   const [error, setError] =
     useState("");
 
-  const [savingStudentId, setSavingStudentId] =
-    useState<string | null>(null);
+  const [
+    savingStudentId,
+    setSavingStudentId,
+  ] = useState<string | null>(
+    null
+  );
 
-  const [showAddMentor, setShowAddMentor] =
-    useState(false);
+  const [
+    showAddMentor,
+    setShowAddMentor,
+  ] = useState(false);
 
-  const [creatingMentor, setCreatingMentor] =
-    useState(false);
+  const [
+    creatingMentor,
+    setCreatingMentor,
+  ] = useState(false);
 
-  const [mentorForm, setMentorForm] =
-    useState({
-      name: "",
-      email: "",
-      phone: "",
-    });
+  const [
+    mentorForm,
+    setMentorForm,
+  ] = useState({
+    name: "",
+    email: "",
+    phone: "",
+  });
 
   // =========================
-  // AUTH HEADER
+  // Permissions
+  // =========================
+
+  const canAssignMentors =
+    hasPermission(
+      "ASSIGN_MENTORS"
+    );
+
+  const canCreateMentors =
+    hasPermission(
+      "CREATE_MENTORS"
+    );
+
+  // =========================
+  // Auth Header
   // =========================
 
   function getAuthHeaders() {
     const token =
-      localStorage.getItem("token");
+      localStorage.getItem(
+        "token"
+      );
 
     return {
-      Authorization: `Bearer ${token}`,
+      Authorization:
+        `Bearer ${token}`,
     };
   }
 
   // =========================
-  // LOAD DATA
+  // Load Data
   // =========================
 
   const loadData =
@@ -101,12 +140,15 @@ export default function MentorAssignments() {
         setError("");
 
         const token =
-          localStorage.getItem("token");
+          localStorage.getItem(
+            "token"
+          );
 
         if (!token) {
           setError(
             "You are not logged in."
           );
+
           return;
         }
 
@@ -142,14 +184,17 @@ export default function MentorAssignments() {
         setStudents(
           assignmentsResponse.data
         );
-      } catch (error: any) {
+      } catch (
+        error: any
+      ) {
         console.error(
           "LOAD MENTOR ASSIGNMENTS ERROR:",
           error
         );
 
         setError(
-          error.response?.data?.message ??
+          error.response?.data
+            ?.message ??
             "Failed to load mentor assignments."
         );
       } finally {
@@ -162,13 +207,21 @@ export default function MentorAssignments() {
   }, [loadData]);
 
   // =========================
-  // ASSIGN MENTOR
+  // Assign / Remove Mentor
   // =========================
 
   async function updateMentor(
     studentId: string,
     mentorId: string
   ) {
+    if (!canAssignMentors) {
+      setError(
+        "You do not have permission to assign mentors."
+      );
+
+      return;
+    }
+
     try {
       setSavingStudentId(
         studentId
@@ -198,14 +251,17 @@ export default function MentorAssignments() {
       }
 
       await loadData();
-    } catch (error: any) {
+    } catch (
+      error: any
+    ) {
       console.error(
         "UPDATE MENTOR ERROR:",
         error
       );
 
       setError(
-        error.response?.data?.message ??
+        error.response?.data
+          ?.message ??
           "Failed to update mentor."
       );
     } finally {
@@ -216,15 +272,26 @@ export default function MentorAssignments() {
   }
 
   // =========================
-  // CREATE MENTOR
+  // Create Mentor
   // =========================
 
   async function createMentor() {
+    if (!canCreateMentors) {
+      setError(
+        "You do not have permission to create mentors."
+      );
+
+      return;
+    }
+
     try {
-      if (!mentorForm.name.trim()) {
+      if (
+        !mentorForm.name.trim()
+      ) {
         setError(
           "Mentor name is required."
         );
+
         return;
       }
 
@@ -257,21 +324,28 @@ export default function MentorAssignments() {
         phone: "",
       });
 
-      setShowAddMentor(false);
+      setShowAddMentor(
+        false
+      );
 
       await loadData();
-    } catch (error: any) {
+    } catch (
+      error: any
+    ) {
       console.error(
         "CREATE MENTOR ERROR:",
         error
       );
 
       setError(
-        error.response?.data?.message ??
+        error.response?.data
+          ?.message ??
           "Failed to create mentor."
       );
     } finally {
-      setCreatingMentor(false);
+      setCreatingMentor(
+        false
+      );
     }
   }
 
@@ -281,16 +355,21 @@ export default function MentorAssignments() {
 
   return (
     <MobileLayout>
+
       <Header />
 
       <main className="flex-1 py-4 overflow-y-auto">
+
         <section className="mx-5">
 
-          {/* Heading */}
+          {/* =========================
+              Heading
+          ========================= */}
 
           <div className="flex items-center justify-between mb-5">
 
             <div className="flex items-center gap-2">
+
               <UserCheck
                 size={22}
                 className="text-emerald-600"
@@ -299,32 +378,56 @@ export default function MentorAssignments() {
               <h1 className="text-2xl font-bold">
                 Mentor Assignment
               </h1>
+
             </div>
 
-            <button
-              type="button"
-              onClick={() =>
-                setShowAddMentor(true)
-              }
-              className="bg-emerald-600 text-white rounded-lg p-2"
-              title="Add mentor"
-            >
-              <UserPlus size={20} />
-            </button>
+            {/* Only users with
+                CREATE_MENTORS */}
+
+            {canCreateMentors && (
+
+              <button
+                type="button"
+                onClick={() =>
+                  setShowAddMentor(
+                    true
+                  )
+                }
+                className="bg-emerald-600 text-white rounded-lg p-2"
+                title="Add mentor"
+              >
+
+                <UserPlus
+                  size={20}
+                />
+
+              </button>
+
+            )}
 
           </div>
 
-          {/* Error */}
+          {/* =========================
+              Error
+          ========================= */}
 
           {error && (
+
             <div className="bg-red-50 text-red-600 rounded-xl p-4 mb-4">
+
               {error}
+
             </div>
+
           )}
 
-          {/* Add Mentor */}
+          {/* =========================
+              Add Mentor
+          ========================= */}
 
-          {showAddMentor && (
+          {showAddMentor &&
+            canCreateMentors && (
+
             <div className="bg-white rounded-xl shadow-sm p-4 mb-5">
 
               <div className="flex items-center justify-between mb-4">
@@ -335,19 +438,32 @@ export default function MentorAssignments() {
 
                 <button
                   type="button"
-                  onClick={() =>
+                  disabled={
+                    creatingMentor
+                  }
+                  onClick={() => {
                     setShowAddMentor(
                       false
-                    )
-                  }
-                  className="text-slate-500"
+                    );
+
+                    setMentorForm({
+                      name: "",
+                      email: "",
+                      phone: "",
+                    });
+                  }}
+                  className="text-slate-500 disabled:opacity-50"
                 >
+
                   <X size={20} />
+
                 </button>
 
               </div>
 
               <div className="space-y-3">
+
+                {/* Name */}
 
                 <input
                   type="text"
@@ -355,15 +471,23 @@ export default function MentorAssignments() {
                   value={
                     mentorForm.name
                   }
-                  onChange={(e) =>
-                    setMentorForm({
-                      ...mentorForm,
-                      name:
-                        e.target.value,
-                    })
+                  disabled={
+                    creatingMentor
                   }
-                  className="w-full border rounded-lg p-3 outline-none focus:border-emerald-600"
+                  onChange={(e) =>
+                    setMentorForm(
+                      (current) => ({
+                        ...current,
+
+                        name:
+                          e.target.value,
+                      })
+                    )
+                  }
+                  className="w-full border rounded-lg p-3 outline-none focus:border-emerald-600 disabled:bg-slate-100"
                 />
+
+                {/* Email */}
 
                 <input
                   type="email"
@@ -371,15 +495,23 @@ export default function MentorAssignments() {
                   value={
                     mentorForm.email
                   }
-                  onChange={(e) =>
-                    setMentorForm({
-                      ...mentorForm,
-                      email:
-                        e.target.value,
-                    })
+                  disabled={
+                    creatingMentor
                   }
-                  className="w-full border rounded-lg p-3 outline-none focus:border-emerald-600"
+                  onChange={(e) =>
+                    setMentorForm(
+                      (current) => ({
+                        ...current,
+
+                        email:
+                          e.target.value,
+                      })
+                    )
+                  }
+                  className="w-full border rounded-lg p-3 outline-none focus:border-emerald-600 disabled:bg-slate-100"
                 />
+
+                {/* Phone */}
 
                 <input
                   type="tel"
@@ -387,15 +519,23 @@ export default function MentorAssignments() {
                   value={
                     mentorForm.phone
                   }
-                  onChange={(e) =>
-                    setMentorForm({
-                      ...mentorForm,
-                      phone:
-                        e.target.value,
-                    })
+                  disabled={
+                    creatingMentor
                   }
-                  className="w-full border rounded-lg p-3 outline-none focus:border-emerald-600"
+                  onChange={(e) =>
+                    setMentorForm(
+                      (current) => ({
+                        ...current,
+
+                        phone:
+                          e.target.value,
+                      })
+                    )
+                  }
+                  className="w-full border rounded-lg p-3 outline-none focus:border-emerald-600 disabled:bg-slate-100"
                 />
+
+                {/* Add */}
 
                 <button
                   type="button"
@@ -407,82 +547,124 @@ export default function MentorAssignments() {
                   }
                   className="w-full bg-emerald-600 text-white rounded-lg py-3 disabled:opacity-50"
                 >
+
                   {creatingMentor
                     ? "Adding..."
                     : "Add Mentor"}
+
                 </button>
 
               </div>
 
             </div>
+
           )}
 
-          {/* Loading */}
+          {/* =========================
+              Loading
+          ========================= */}
 
           {loading && (
+
             <div className="bg-white rounded-xl shadow-sm p-8 text-center text-slate-500">
+
               Loading mentor assignments...
+
             </div>
+
           )}
 
-          {/* No Students */}
+          {/* =========================
+              No Students
+          ========================= */}
 
           {!loading &&
             students.length === 0 && (
-              <div className="bg-white rounded-xl shadow-sm p-8 text-center text-slate-500">
-                No students found.
-              </div>
-            )}
 
-          {/* Students */}
+            <div className="bg-white rounded-xl shadow-sm p-8 text-center text-slate-500">
+
+              No students found.
+
+            </div>
+
+          )}
+
+          {/* =========================
+              Students
+          ========================= */}
 
           {!loading &&
             students.length > 0 && (
-              <div className="space-y-3">
 
-                {students.map(
-                  (student) => (
-                    <div
-                      key={student.id}
-                      className="bg-white rounded-xl shadow-sm p-4"
-                    >
+            <div className="space-y-3">
 
-                      <div className="flex items-start justify-between gap-3">
+              {students.map(
+                (student) => (
 
-                        <div>
-                          <h2 className="font-semibold">
-                            {
-                              student.firstName
-                            }{" "}
-                            {
-                              student.lastName
-                            }
-                          </h2>
+                  <div
+                    key={
+                      student.id
+                    }
+                    className="bg-white rounded-xl shadow-sm p-4"
+                  >
 
-                          <p className="text-sm text-slate-500 mt-1">
-                            {
-                              student.rollNumber
-                            }
-                            {" • "}
-                            {
-                              student.batch.name
-                            }
-                          </p>
-                        </div>
+                    {/* Student */}
 
-                        {student.mentor && (
-                          <span className="text-xs bg-emerald-100 text-emerald-700 rounded-full px-2 py-1">
-                            Assigned
-                          </span>
-                        )}
+                    <div className="flex items-start justify-between gap-3">
+
+                      <div>
+
+                        <h2 className="font-semibold">
+
+                          {
+                            student.firstName
+                          }{" "}
+
+                          {
+                            student.lastName
+                          }
+
+                        </h2>
+
+                        <p className="text-sm text-slate-500 mt-1">
+
+                          {
+                            student.rollNumber
+                          }
+
+                          {" • "}
+
+                          {
+                            student.batch.name
+                          }
+
+                        </p>
 
                       </div>
 
-                      <div className="mt-4">
+                      {student.mentor && (
 
-                        <label className="text-sm text-slate-500">
-                          Mentor
-                        </label>
+                        <span className="text-xs bg-emerald-100 text-emerald-700 rounded-full px-2 py-1">
+
+                          Assigned
+
+                        </span>
+
+                      )}
+
+                    </div>
+
+                    {/* =========================
+                        Mentor Assignment
+                    ========================= */}
+
+                    <div className="mt-4">
+
+                      <label className="text-sm text-slate-500">
+                        Mentor
+                      </label>
+
+                      {canAssignMentors ? (
 
                         <select
                           value={
@@ -508,6 +690,7 @@ export default function MentorAssignments() {
 
                           {mentors.map(
                             (mentor) => (
+
                               <option
                                 key={
                                   mentor.id
@@ -516,71 +699,107 @@ export default function MentorAssignments() {
                                   mentor.id
                                 }
                               >
+
                                 {
                                   mentor.name
                                 }
+
                               </option>
+
                             )
                           )}
 
                         </select>
 
-                        {savingStudentId ===
-                          student.id && (
-                          <p className="text-xs text-slate-500 mt-2">
-                            Saving...
+                      ) : (
+
+                        <div className="w-full border border-slate-200 rounded-lg p-3 mt-1 bg-slate-50 text-slate-700">
+
+                          {student.mentor
+                            ?.name ??
+                            "No mentor assigned"}
+
+                        </div>
+
+                      )}
+
+                      {savingStudentId ===
+                        student.id && (
+
+                        <p className="text-xs text-slate-500 mt-2">
+
+                          Saving...
+
+                        </p>
+
+                      )}
+
+                    </div>
+
+                    {/* =========================
+                        Mentor Details
+                    ========================= */}
+
+                    {student.mentor && (
+
+                      <div className="mt-3 bg-slate-50 rounded-lg p-3 text-sm">
+
+                        <p className="font-medium">
+
+                          {
+                            student.mentor
+                              .name
+                          }
+
+                        </p>
+
+                        {student.mentor
+                          .email && (
+
+                          <p className="text-slate-500 mt-1">
+
+                            {
+                              student.mentor
+                                .email
+                            }
+
                           </p>
+
+                        )}
+
+                        {student.mentor
+                          .phone && (
+
+                          <p className="text-slate-500">
+
+                            {
+                              student.mentor
+                                .phone
+                            }
+
+                          </p>
+
                         )}
 
                       </div>
 
-                      {student.mentor && (
-                        <div className="mt-3 bg-slate-50 rounded-lg p-3 text-sm">
+                    )}
 
-                          <p className="font-medium">
-                            {
-                              student
-                                .mentor
-                                .name
-                            }
-                          </p>
+                  </div>
 
-                          {student.mentor
-                            .email && (
-                            <p className="text-slate-500 mt-1">
-                              {
-                                student
-                                  .mentor
-                                  .email
-                              }
-                            </p>
-                          )}
+                )
+              )}
 
-                          {student.mentor
-                            .phone && (
-                            <p className="text-slate-500">
-                              {
-                                student
-                                  .mentor
-                                  .phone
-                              }
-                            </p>
-                          )}
+            </div>
 
-                        </div>
-                      )}
-
-                    </div>
-                  )
-                )}
-
-              </div>
-            )}
+          )}
 
         </section>
+
       </main>
 
       <AdminBottomNavigation />
+
     </MobileLayout>
   );
 }
